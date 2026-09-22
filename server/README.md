@@ -1,0 +1,341 @@
+# PlaneR Server
+
+- [PlaneR Server](#planer-server)
+    - [Abstract](#abstract)
+    - [Prerequisites](#prerequisites)
+        - [Kotlin and JDK](#kotlin-and-jdk)
+        - [Docker](#docker)
+        - [Http Client](#http-client)
+    - [Get Started](#get-started)
+        - [Environment Variables](#environment-variables)
+        - [Docker Containers](#docker-containers)
+        - [Restore Dependencies](#restore-dependencies)
+        - [Run](#run)
+        - [Quick Test](#quick-test)
+    - [Sample Data](#sample-data)
+    - [Build Executable](#build-executable)
+    - [Project Structure](#project-structure)
+    - [Architecture](#architecture)
+    - [Api](#api)
+        - [Authentication](#authentication)
+    - [Database](#database)
+        - [Migration](#migration)
+    - [Testing](#testing)
+        - [Unit Testing](#unit-testing)
+        - [Integration Testing](#integration-testing)
+    - [Live Reload](#live-reload)
+
+## Abstract
+
+This is the HTTP Server (or backend) of the **PlaneR** application, written completely in Kotlin using the **Ktor** framework.
+
+It owns the data and the business rules: authentication, authorization, persistence, and everything the clients rely on. The internal structure of the module is deliberately left open and will be documented as the codebase takes shape. The high-level responsibilities and request flow are described in the [Architecture section](#architecture) below.
+
+## Prerequisites
+
+Before you can get started, there are some things you need to have installed on your system.
+
+### Kotlin and JDK
+
+The application is written in Kotlin and runs on the JVM, so you need the **JDK 21 or later**. If you don't have it already installed, please download it from here: `https://adoptium.net/`.
+
+You also need the Kotlin compiler, but if you use the Gradle wrapper included in the project, it will handle the Kotlin version automatically.
+
+### Docker
+
+Developing becomes easier while using isolated containers provided by Docker, so, if you do not have it installed already, please do so from here: `https://www.docker.com/products/docker-desktop/` (you may have to restart afterward).
+
+### Http Client
+
+To exercise the API manually, you will want an HTTP client. Any of the following work:
+
+- **Postman** — `https://www.postman.com/downloads/`
+- **Insomnia** — `https://insomnia.rest/download`
+- **HTTPie** — `https://httpie.io/cli`
+- **curl** — preinstalled on most systems
+
+The examples in this README use the Postman `{{host}}` variable convention, but any client works the same way.
+
+## Get Started
+
+To get started on contributing to this project, you can do so by following the next steps.
+
+### Environment Variables
+
+Create a `.env` file by copying the provided `.env.dev` file. This file contains the variables needed for the database container initialization and the application configuration.
+
+The required variables are:
+
+| Variable | Purpose | Default (dev) |
+|---|---|---|
+| `DB_HOST` | Database host | `localhost` |
+| `DB_PORT` | Database port | `5432` |
+| `DB_NAME` | Database name | `planer` |
+| `DB_USER` | Database user | `planer` |
+| `DB_PASSWORD` | Database password | `planer` |
+| `JWT_SECRET_KEY` | Signing key for tokens, min 32 bytes | *(set manually — see Security)* |
+| `SERVER_PORT` | Port the server listens on | `8080` |
+
+See [Security](../.docs/security/Security.md) for the requirements on `JWT_SECRET_KEY` and the [Database doc](../.docs/infrastructure/Database.md#connection-configuration) for details on the connection variables.
+
+### Docker Containers
+
+A `docker-compose.yml` file has been provided at the repository root. It reads variables from `.env` and starts:
+
+- the **database** container (Postgres)
+- the **server** container (running in development mode by default)
+
+From the repository root, run:
+
+```sh
+docker compose up -d
+```
+
+If you want to run only the database and let the server run from your IDE, use:
+
+```sh
+docker compose up -d database
+```
+
+No matter where the database instance runs, it starts empty and you need to apply the migrations before the server can operate. The server runs them automatically on startup when run in a container, but for local runs use the shell script below.
+
+### Restore Dependencies
+
+To restore the dependencies, type the following command from the **repository root**:
+
+```sh
+./gradlew :planer-server:dependencies
+```
+
+### Run
+
+To run the application from the CLI:
+
+```sh
+./gradlew :planer-server:run
+```
+
+The application will run by default on port **8080**. This can be changed via the `SERVER_PORT` environment variable or by editing `application.conf` under `src/main/resources`.
+
+### Quick Test
+
+The simplest check that the server is up and reachable is the health endpoint. It does not require authentication and reports whether the database is reachable:
+
+```sh
+curl http://localhost:8080/health
+```
+
+A healthy response looks like:
+
+```json
+{ "status": "healthy" }
+```
+
+If the database is unreachable, the server returns `503 Service Unavailable` with a body explaining why.
+
+To verify that authentication is wired up correctly, try:
+
+```
+GET {{host}}/api/users/me
+```
+
+Without a token, this returns `401 Unauthorized`. That is the expected result and confirms that the API and the database are both reachable.
+
+## Sample Data
+
+Sample data is provided for testing purposes of the application. To populate the database, use the following script from the repository root:
+
+```sh
+./scripts/add-sample-data.sh
+```
+
+For details on what the sample data contains and how to reset it, check out the [Sample Data documentation](../.docs/dev/Sample-Data.md).
+
+## Build Executable
+
+To build an executable JAR:
+
+```sh
+./gradlew :planer-server:buildFatJar
+```
+
+The resulting JAR is written to `planer-server/build/libs/` and can be run with:
+
+```sh
+java -jar planer-server/build/libs/planer-server-all.jar
+```
+
+## Project Structure
+
+```
+planer-server/
+├── README.md
+├── build.gradle.kts
+└── src/
+    ├── main/
+    │   ├── kotlin/app/planer/server/
+    │   │   ├── Application.kt      # Ktor entry point
+    │   │   ├── config/             # Config loading
+    │   │   ├── plugin/             # Ktor plugins (auth, routing, status pages)
+    │   │   ├── route/              # One file per API controller
+    │   │   ├── service/            # Business logic — TBD
+    │   │   ├── repository/         # Data access — TBD
+    │   │   ├── database/           # Schema, tables, migrations glue
+    │   │   └── security/           # JWT, password hashing
+    │   └── resources/
+    │       ├── application.conf        # Ktor configuration
+    │       ├── application-test.conf   # Configuration for integration tests
+    │       ├── logback.xml
+    │       └── db/migration/           # Flyway SQL migrations
+    └── test/kotlin/app/planer/server/
+        ├── core/                   # Test Application, BaseIntegrationTest, AppHttpClient
+        ├── unit/                   # Unit tests, mirroring main package
+        └── integration/            # Integration tests, grouped by collection
+```
+
+The exact package layout inside `service/`, `repository/`, and `database/` is not yet fixed and will be documented as the codebase takes shape.
+
+## Architecture
+
+PlaneR follows a **client–server** architecture with a shared **Kotlin Multiplatform** core module. The server's role is well-defined even though its internal structure is still being decided:
+
+**Responsibilities**
+
+- **Authentication** — registration, login, token issuance and refresh, email verification, password reset
+- **Authorization** — every request is scoped to the authenticated user
+- **Persistence** — reading and writing domain models to PostgreSQL
+- **Business logic** — recurrence expansion, task ↔ event conversion, cascade rules on deletion, ownership checks
+- **HTTP surface** — the endpoints described in the [Api documentation](../.docs/api/Api.md)
+
+**Request flow (high level)**
+
+- A request arrives on a Ktor route, where it is validated
+- The route delegates to a service that applies business rules
+- The service calls into a repository that talks to the database
+- The result travels back to the route and to the client, with errors handled centrally by the `StatusPages` plugin
+
+The specific shape of the service and repository layers — whether there are explicit use cases, whether repositories return domain models or persistence entities — is **intentionally undecided** and will be finalised once the codebase exists. See [Architecture → Open Questions](../.docs/architecture/Architecture.md#open-questions) for the outstanding decisions.
+
+For more details, check out the full [Architecture documentation](../.docs/architecture/Architecture.md).
+
+## Api
+
+The full API documentation lives at [Api](../.docs/api/Api.md). It covers conventions, authentication, error format, pagination, and links to each controller's own reference.
+
+The controllers are:
+
+- [Auth](../.docs/api/controllers/Api.Auth.md)
+- [User](../.docs/api/controllers/Api.User.md)
+- [Calendar](../.docs/api/controllers/Api.Calendar.md)
+- [Event](../.docs/api/controllers/Api.Event.md)
+- [Task](../.docs/api/controllers/Api.Task.md)
+- [Search](../.docs/api/controllers/Api.Search.md) *(sketch — not final)*
+
+### Authentication
+
+Endpoints that do not allow anonymous requests expect a **JWT** in the `Authorization` header, as a **Bearer Token**. The server uses **HS256** for signing.
+
+To obtain a token, call the login endpoint:
+
+```
+POST {{host}}/api/auth/login
+```
+
+With the body:
+
+```json
+{
+    "email": "alex@example.com",
+    "password": "Password123!"
+}
+```
+
+The response includes an `accessToken` and a `refreshToken`. Set the access token as the Bearer token in your HTTP client and every subsequent request will be authenticated.
+
+For more on the token model — signing, refresh, revocation, and expiry — see [Security](../.docs/security/Security.md).
+
+## Database
+
+The database chosen for this application infrastructure is **PostgreSQL**.
+
+For more information about the database — schema, naming conventions, and value-object flattening — please check out the [Database documentation](../.docs/infrastructure/Database.md).
+
+### Migration
+
+**Flyway** is the database migration tool. Migration files are versioned SQL scripts under `src/main/resources/db/migration/` and are applied at startup, keeping the schema in sync with the codebase.
+
+To apply migrations manually:
+
+```sh
+./gradlew :planer-server:flywayMigrate
+```
+
+Migration files follow the naming convention `V{version}__{description}.sql`. To inspect the current migration state:
+
+```sh
+./gradlew :planer-server:flywayInfo
+```
+
+The `apply-database-migrations.sh` shell script wraps the Gradle task and reads the connection details from `.env`, so it can be used without any extra configuration.
+
+## Testing
+
+The server is tested at two levels — **Unit** and **Integration**. Both use **Kotlin Test** and **JUnit 5** for assertions.
+
+End-to-end tests exist for the **clients** (desktop and Android) but not for the server in isolation.
+
+The full test strategy is documented in [Testing](../.docs/testing/Testing.md). The server-specific details are in [Testing — Server](../.docs/testing/Testing.Server.md).
+
+### Unit Testing
+
+Unit tests exercise a single class or function in isolation, with no database and no HTTP. They live under `src/test/kotlin/app/planer/server/unit/` and mirror the main package structure.
+
+To run all unit tests:
+
+```sh
+./gradlew :planer-server:test
+```
+
+The component under test is held in a field named **`uut`** (*Unit Under Test*).
+
+### Integration Testing
+
+Integration tests exercise the server through its HTTP layer against a **real Postgres instance** running in a **Testcontainers** container. They live under `src/test/kotlin/app/planer/server/integration/`, grouped by test collection.
+
+To run all integration tests:
+
+```sh
+./gradlew :planer-server:integrationTest
+```
+
+The supporting infrastructure lives in `src/test/kotlin/app/planer/server/core/`:
+
+- **Test Application** — starts the Ktor app in-process for testing
+- **BaseIntegrationTest** — every integration test extends this; provides the `client` and manages per-test state
+- **AppHttpClient** — a thin wrapper around the Ktor test client with helpers for auth
+- **TestAuthHandler** — injects a JWT for tests without hitting the login endpoint
+- **ITestData** — an interface for seeding datasets
+
+Each test collection is backed by its own Postgres container, shared across the test classes in it. The **Resetter** wipes the tables between test methods so tests remain isolated.
+
+For the full picture — including how to write a collection, seed data, and assert with the client — see [Testing — Server](../.docs/testing/Testing.Server.md).
+
+## Live Reload
+
+Ktor has built-in support for auto-reload during development. When the server is started with development mode enabled, it watches the compiled classes and reloads them when they change.
+
+To run in development mode with continuous compilation:
+
+```sh
+./gradlew :planer-server:run --continuous
+```
+
+Any change to a Kotlin source file triggers recompilation, and Ktor picks up the new classes without a full restart. Alternatively, the flag can be set explicitly:
+
+```sh
+./gradlew :planer-server:run -Dio.ktor.development=true
+```
+
+When running via Docker, the `docker-compose.yml` file enables development mode by default. Editing the source code on the host still requires rebuilding the container image — for the fastest loop, run the server from the IDE or CLI against a containerized database.
+
+For more configuration options, check the `application.conf` file under `src/main/resources`, which is already included in the application.
