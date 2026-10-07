@@ -4,9 +4,9 @@ PlaneR is tested at three levels, and each level has its own document:
 
 | Level | Scope | Document |
 |---|---|---|
-| **Unit** | Single classes in isolation | [Server](Testing.Server.md#unit-testing), [Desktop](Testing.Desktop.md), [Mobile](Testing.Mobile.md) |
+| **Unit** | Single classes in isolation | [Server](Testing.Server.md#unit-testing), [Desktop](Testing.Desktop.md), [Android](Testing.Android.md) |
 | **Integration** | The server through its HTTP layer, against a real Postgres | [Server](Testing.Server.md#integration-testing) |
-| **End-to-End** | Real clients, driven through their UI, against a real server | [Desktop](Testing.Desktop.md), [Mobile](Testing.Mobile.md) |
+| **End-to-End** | Real clients, driven through their UI, against a real server | [Desktop](Testing.Desktop.md), [Android](Testing.Android.md) |
 
 Tests are written in **Kotlin** and run through **JUnit 5** with **Kotlin Test** for assertions. Compose UI tests use **Compose UI Testing**, which works identically across Compose for Desktop and Jetpack Compose.
 
@@ -73,4 +73,4 @@ The `Arrange / Act / Assert` pattern makes the intent of a test obvious at a gla
 
 - [Server](Testing.Server.md) — unit and integration tests for the Ktor server
 - [Desktop](Testing.Desktop.md) — end-to-end UI tests on Compose for Desktop
-- [Mobile](Testing.Mobile.md) — end-to-end UI tests on Jetpack Compose for Android
+- [Android](Testing.Android.md) — end-to-end UI tests on Jetpack Compose for Android
