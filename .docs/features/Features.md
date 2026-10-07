@@ -43,6 +43,7 @@ shaped to support them.
 - **Recurring events** with daily, weekly, monthly, and yearly frequencies
 - **Occurrence overrides** for editing a single instance of a recurring event
 - **Skip occurrences** without breaking the series
+- **Routines** — an ordered list of preparation steps performed before the event starts, used for reverse planning. The server computes when each step begins so the user knows when to start getting ready.
 
 ### Tasks
 
@@ -70,6 +71,7 @@ shaped to support them.
 
 - **Streak** — consecutive days with at least one completed task
 - **Focus Now** — the next upcoming event or scheduled task
+- **Routine Start** — when to begin preparing for the next event
 - **Overdue** — tasks past their deadline
 - **Today's progress** — completed vs. total for the day
 - **Calendar counts** — how many items per calendar
@@ -77,7 +79,7 @@ shaped to support them.
 ### Cross-platform
 
 - **Desktop** client for Windows, macOS, and Linux
-- **Mobile** client for Android
+- **Android** client for Android
 - **Shared UI** between both platforms via Compose Multiplatform
 
 ## Planned
@@ -93,7 +95,8 @@ A global search across events and tasks. Implementation is still undecided — s
 Features that have been considered and intentionally postponed.
 They may return in a future version.
 
-- **Reminders and notifications** — would require a `Reminder` model, a scheduler, and platform-specific notification code
+- **Routine templates** — reusable preparation routines that can be applied to an event with one click. In v1 the routine lives directly on the event; templates would let the user save and reuse a common sequence (e.g., "Going out").
+- **Reminders and notifications** — would require a `Reminder` model, a scheduler, and platform-specific notification code. A routine's first step is a natural trigger point.
 - **Attachments** — would require a storage layer for files and images
 - **Daily check-in** — the "Energy Level Today" widget from early mockups
 - **Offline mode** — a local cache so the app works without a network connection

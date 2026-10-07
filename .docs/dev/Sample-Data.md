@@ -16,6 +16,7 @@ The sample data is designed to cover the common cases the UI needs to render:
 
 - Multiple calendars with different colors and icons
 - Events that are today, this week, and this month
+- An event with a routine (meet friends → shower, dress, walk dog, travel)
 - Tasks that are scheduled, unscheduled, due, overdue, and completed
 - A recurring event (daily standup)
 - A recurring task (water plants weekly)
@@ -33,10 +34,12 @@ sample-data/
 ├── 01-users.sql
 ├── 02-calendars.sql
 ├── 03-events.sql
-└── 04-tasks.sql
+├── 04-tasks.sql
+└── 05-event-preparation-steps.sql
 ```
 
-Files are numbered so they run in dependency order (users → calendars → events → tasks).
+Files are numbered so they run in dependency order
+(users → calendars → events → tasks → preparation steps).
 
 Each file uses `INSERT ... ON CONFLICT DO NOTHING` so it is safe to re-run.
 
@@ -79,5 +82,5 @@ When you add a new entity to the domain and want it represented in the seed:
 4. Test by running `reset-database.sh` and confirming the app renders everything.
 
 If the new entity introduces a new dependency (e.g., `refresh_tokens` before
-events), create a new numbered file rather than editing an existing one — the
-numbering is the execution order.
+events, or `event_preparation_steps` after events), create a new numbered file
+rather than editing an existing one — the numbering is the execution order.

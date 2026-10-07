@@ -56,7 +56,7 @@ If iOS is added in the future, it becomes a fifth module (`planer-ios`) that dep
 
 ### Domain models
 
-The shapes described in [Domain](../domain/Domain.md) — `User`, `Calendar`, `Event`, `Task` — as plain Kotlin data classes. These are the *shared* representation used on both sides of the wire.
+The shapes described in [Domain](../domain/Domain.md) — `User`, `Calendar`, `Event`, `Task`, `RecurrenceRule`, `PreparationStep` — as plain Kotlin data classes. These are the *shared* representation used on both sides of the wire.
 
 ### DTOs
 
@@ -65,7 +65,7 @@ Keeping them in `planer-core` means both client and server compile against the s
 
 ### Validation
 
-Rules like "title is 1–120 characters", "endsAt must be after startsAt", "color matches `^#[0-9A-Fa-f]{6}$`". Validating on both client (for immediate UI feedback) and server (as the source of truth) using the same code eliminates drift between the two.
+Rules like "title is 1–120 characters", "endsAt must be after startsAt", "color matches `^#[0-9A-Fa-f]{6}$`", "a preparation step's duration is between 1 and 1440 minutes". Validating on both client (for immediate UI feedback) and server (as the source of truth) using the same code eliminates drift between the two.
 
 ### Shared UI
 
@@ -108,7 +108,7 @@ The server is a **Ktor** application running on the JVM. Its responsibilities ar
 - **Authentication** — registration, login, token issuance and refresh, email verification, password reset
 - **Authorization** — every request is scoped to the authenticated user
 - **Persistence** — reading and writing the domain models
-- **Business logic** — recurrence expansion, task/event conversion, cascade rules on deletion
+- **Business logic** — recurrence expansion, routine layout, task/event conversion, cascade rules on deletion
 - **HTTP surface** — the endpoints described in [Api](../api/Api.md)
 
 The internal structure of the server (how requests flow from a route to the database, what layers or packages exist, whether use cases are explicit or implicit) is **deliberately not decided yet** and will be documented separately once the codebase takes shape.
@@ -118,9 +118,16 @@ The internal structure of the server (how requests flow from a route to the data
 Data is stored in **PostgreSQL**. Migrations are versioned with **Flyway** and applied at startup.
 See [Database](../infrastructure/Database.md) for the schema, naming conventions, and migration workflow.
 
-### Recurrence expansion
+### Computed timelines
 
-Recurring events and tasks are stored **once**, with a `RecurrenceRule`. When a client requests events in a date range, the server expands the rule into concrete occurrences before returning them. This is the one place where the server does meaningful computation rather than just relaying data.
+The server does two kinds of computation that would otherwise have to be
+duplicated on every client:
+
+- **Recurrence expansion** — recurring events and tasks are stored **once**, with a `RecurrenceRule`. When a client requests events in a date range, the server expands the rule into concrete occurrences before returning them.
+- **Routine layout** — an event with preparation steps carries a derived `routineStartAt` and, per step, a computed `startsAt`/`endsAt`. The server lays the steps out backward from the event's `startsAt`, so every client renders the same timeline without reimplementing the arithmetic.
+
+This is where the server earns its keep. The clients stay thin because the
+timeline is computed once, in one place, and shipped as data.
 
 ## Communication Between Client and Server
 
@@ -154,6 +161,7 @@ This is noted here only to explain why the domain model already carries `updated
 | **Error handling** | Server catches and shapes errors; `planer-core` maps them to UI-friendly messages. |
 | **Timezones** | The `User.timezone` is authoritative. The client sends UTC instants; the server never assumes a timezone. |
 | **Recurrence** | Server expands rules into occurrences. `planer-core` never re-implements the expansion. |
+| **Routines** | Server computes `routineStartAt` and per-step times. `planer-core` renders them. |
 | **Localization** | Not in v1. The UI is English-only. |
 
 ## Open Questions
@@ -186,7 +194,8 @@ These are things the architecture does not commit to yet, and that will be settl
 
 ### Future Features
 
-13. **Notifications.** Whether to support reminders, how they are scheduled, and how they reach the user on desktop and Android. Would require a `Reminder` model, a scheduler, and platform-specific code.
-14. **Offline support.** Whether to add a local cache in a future version and what shape it would take.
-15. **iOS.** Whether and when to add `planer-ios` as a sibling client, and what platform-specific integrations it would need.
-16. **Deployment topology.** Where the server runs, how TLS is terminated, whether a CDN fronts anything. Partially addressed in [Deployment](../infrastructure/Deployment.md); the cloud environment specifics are TBD.
+13. **Notifications.** Whether to support reminders, how they are scheduled, and how they reach the user on desktop and Android. Would require a `Reminder` model, a scheduler, and platform-specific code. A routine's first step is a natural trigger point — *"start preparing now"* — but the notification system is deferred entirely.
+14. **Routine templates.** A reusable `Routine` model that can be applied to an event with one click. Deferred to a future version; in v1 the routine lives directly on the event.
+15. **Offline support.** Whether to add a local cache in a future version and what shape it would take.
+16. **iOS.** Whether and when to add `planer-ios` as a sibling client, and what platform-specific integrations it would need.
+17. **Deployment topology.** Where the server runs, how TLS is terminated, whether a CDN fronts anything. Partially addressed in [Deployment](../infrastructure/Deployment.md); the cloud environment specifics are TBD.

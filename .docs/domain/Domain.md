@@ -100,6 +100,8 @@ A **time-bound occurrence** on the calendar. Something that happens at a specifi
 | `endsAt` | Instant | Required |
 | `allDay` | bool | Renders as a banner instead of a block |
 | `recurrence` | RecurrenceRule? | See below |
+| `routine` | List\<PreparationStep\> | Ordered; empty if none. See Preparation Steps below |
+| `routineStartAt` | Instant? | Derived from `startsAt` and the sum of the routine's durations |
 | `createdAt` | Instant | |
 | `updatedAt` | Instant | |
 
@@ -157,6 +159,7 @@ A **to-do item**. Something the user needs to do and can mark as completed. May 
 | **Essence** | Something that *happens* | Something you *need to do* |
 | **Time** | Always has start & end | Optional |
 | **Completion** | No completion state | Has `completed` |
+| **Preparation** | May carry a preparation routine | Never carries one |
 | **Litmus test** | "Does it make sense to mark this done?" → No | → Yes |
 | **Example** | "Team Standup, 9:00–9:30" | "Buy groceries" |
 | **Example** | "Doctor Appointment, 8:00–9:00" | "Call dentist" |
@@ -174,11 +177,13 @@ PlaneR models this as an explicit **conversion** rather than a link:
 
 - **Task → Event** — the Task is deleted and a new Event is created from its fields.
   The Task's `scheduledStartAt` / `scheduledEndAt` become the Event's `startsAt` / `endsAt`, unless overridden.
+  The new Event starts with an empty `routine`.
 - **Event → Task** — the Event is deleted and a new Task is created from its fields.
+  The Event's `routine` is **discarded** — a Task has no preparation concept.
 
 **Why not link them?** A "task that has become an event" is a conceptual change, not a relationship. Keeping both around would double the surface area of every query and give the UI no clean way to represent a task that is now an event.
 
-This is exposed as two endpoints (documented in `Api.md`):
+This is exposed as two endpoints (documented in [Api.Event](../api/controllers/Api.Event.md)):
 
 - `POST /api/tasks/{id}/convert-to-event`
 - `POST /api/events/{id}/convert-to-task`
@@ -238,6 +243,75 @@ It loosely follows RFC 5545 (iCalendar) but only includes the fields a personal 
 
 ---
 
+## Preparation Steps
+
+A **preparation step** is an ordered step the user performs *before* an event starts.
+It is used for **reverse planning**: the event has a fixed `startsAt`, and the
+preparation steps are laid out backward from it, so the user knows when to start
+getting ready.
+
+Example: an event at 17:30 with a routine of "Shower (40 min)", "Dress (30 min)",
+"Walk dog (20 min)", "Travel (30 min)" yields a `routineStartAt` of 15:30.
+
+### 🧭 PreparationStep *(value object)*
+
+Attached to an Event as its `routine`. The list is ordered.
+
+| Field | Type | Notes |
+|---|---|---|
+| `name` | string | "Shower", "Walk dog", "Travel" |
+| `duration` | int | How long the step takes, in minutes |
+| `position` | int | Order in the sequence |
+
+A `PreparationStep` has no ID and no timestamps. It lives and dies with its event.
+
+**Notes**
+
+- Preparation steps are **strictly sequential**. No overlap. If the user needs a gap, they add a step called "Wait" with the appropriate duration.
+- They are **not** tasks. A preparation step cannot be completed, has no calendar, and is never queried on its own.
+- They are **not** events. A preparation step is a *duration*, not a moment.
+
+### Event additions
+
+The Event model gains two fields:
+
+| Field | Type | Notes |
+|---|---|---|
+| `routine` | List\<PreparationStep\> | Ordered; empty if none |
+| `routineStartAt` | Instant? | Derived: `startsAt - sum(routine.duration)` |
+
+`routineStartAt` is a **derived field**. The source of truth is the steps and
+the event start time; the server recomputes it on every write. It exists so that
+"what do I need to start preparing for soon?" can be answered with a single
+indexed query rather than expanding steps in application code.
+
+### Computed timeline
+
+When the server returns an event with a routine, it also returns the computed
+`startsAt` and `endsAt` for each step, so the client doesn't have to do the
+arithmetic:
+
+| Step | Starts | Ends |
+|---|---|---|
+| Shower | 15:30 | 16:10 |
+| Dress | 16:10 | 16:40 |
+| Walk dog | 16:40 | 17:00 |
+| Travel | 17:00 | 17:30 |
+| **Event** | **17:30** | **18:00** |
+
+This is calculated in the user's timezone. Timestamps are still sent as UTC;
+the client renders them in the user's local zone.
+
+**Routines (deferred)**
+
+A reusable template of preparation steps — a `Routine` model that can be applied
+to an event — is planned for a future version. In v1, the steps live directly on
+the event. Applying a routine in the future will **copy** the steps onto the
+event rather than linking, so editing a routine never changes events that
+already used it.
+
+---
+
 ## Enums
 
 ### 🎨 CalendarIcon
@@ -273,6 +347,7 @@ Not stored as their own models — computed from the ones above.
 |---|---|---|
 | **Streak** | `Task.completedAt` grouped by day | Powers the "6 days 🔥" card |
 | **Focus Now** | Next upcoming event or scheduled task | Powers the "Focus Now" panel |
+| **Routine Start** | `Event.startsAt - sum(routine.duration)` | Powers the "start preparing at 3:30 PM" card |
 | **Overdue** | `Task.dueAt < now && !completed` | Powers the Overdue card |
 | **Today's Progress** | Tasks scheduled for today, completed vs. total | Powers the "3 / 7" progress |
 | **Calendar counts** | Events + tasks per calendar for the sidebar | Powers the "8", "5", "3" badges |
@@ -283,6 +358,7 @@ Not stored as their own models — computed from the ones above.
 
 The following are intentionally left out of the initial domain and will be added if needed:
 
+- **Routines** — reusable templates of preparation steps (see Preparation Steps above)
 - **Reminders / notifications** — would require a `Reminder` model and a scheduler
 - **Attachments** — would require a storage layer
 - **DailyCheckIn** — the "Energy Level Today" feature; to be decided

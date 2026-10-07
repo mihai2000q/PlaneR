@@ -9,8 +9,14 @@
 - [Override Occurrence](#override-occurrence)
 - [Skip Occurrence](#skip-occurrence)
 - [Convert to Task](#convert-to-task)
+- [Bulk Delete](#bulk-delete)
+- [Bulk Shift](#bulk-shift)
+- [Bulk Move](#bulk-move)
 
 A time-bound occurrence. Always has a `startsAt` and `endsAt`.
+May carry a **routine** — an ordered list of preparation steps the user performs
+before the event starts, used for reverse planning. See
+[Domain → Preparation Steps](../../domain/Domain.md#preparation-steps).
 
 ---
 
@@ -42,20 +48,22 @@ GET {{host}}/api/events?from=2025-07-13&to=2025-07-19&calendarIds=11111111-...&u
     {
       "id": "22222222-0000-7000-8000-000000000001",
       "calendarId": "11111111-0000-7000-8000-000000000001",
-      "title": "Team Standup",
+      "title": "Meet friends",
       "description": null,
-      "location": "Zoom",
-      "startsAt": "2025-07-15T09:00:00Z",
-      "endsAt": "2025-07-15T09:30:00Z",
+      "location": "Café Central",
+      "startsAt": "2025-07-15T17:30:00Z",
+      "endsAt": "2025-07-15T20:00:00Z",
       "allDay": false,
-      "recurrence": {
-        "frequency": "WEEKLY",
-        "interval": 1,
-        "byDay": ["MON", "TUE", "WED", "THU", "FRI"],
-        "end": { "type": "NEVER" }
-      },
+      "recurrence": null,
+      "routineStartAt": "2025-07-15T15:30:00Z",
+      "routine": [
+        { "name": "Shower",   "duration": 40, "startsAt": "2025-07-15T15:30:00Z", "endsAt": "2025-07-15T16:10:00Z" },
+        { "name": "Dress",    "duration": 30, "startsAt": "2025-07-15T16:10:00Z", "endsAt": "2025-07-15T16:40:00Z" },
+        { "name": "Walk dog", "duration": 20, "startsAt": "2025-07-15T16:40:00Z", "endsAt": "2025-07-15T17:00:00Z" },
+        { "name": "Travel",   "duration": 30, "startsAt": "2025-07-15T17:00:00Z", "endsAt": "2025-07-15T17:30:00Z" }
+      ],
       "occurrenceDate": "2025-07-15",
-      "isRecurringInstance": true
+      "isRecurringInstance": false
     }
   ],
   "page": 0,
@@ -66,8 +74,8 @@ GET {{host}}/api/events?from=2025-07-13&to=2025-07-19&calendarIds=11111111-...&u
 ```
 
 `occurrenceDate` is present only for expanded occurrences of a recurring event.
-It is the date this occurrence belongs to and can be used to address it in the
-occurrence endpoints below.
+
+`routineStartAt` is `null` when the event has no routine.
 
 ---
 
@@ -95,13 +103,19 @@ POST {{host}}/api/events
 ```json
 {
   "calendarId": "11111111-0000-7000-8000-000000000001",
-  "title": "Doctor Appointment",
-  "description": "Annual check-up",
-  "location": "St. Mary's Clinic",
-  "startsAt": "2025-07-17T08:00:00Z",
-  "endsAt": "2025-07-17T09:00:00Z",
+  "title": "Meet friends",
+  "description": null,
+  "location": "Café Central",
+  "startsAt": "2025-07-15T17:30:00Z",
+  "endsAt": "2025-07-15T20:00:00Z",
   "allDay": false,
-  "recurrence": null
+  "recurrence": null,
+  "routine": [
+    { "name": "Shower",   "duration": 40 },
+    { "name": "Dress",    "duration": 30 },
+    { "name": "Walk dog", "duration": 20 },
+    { "name": "Travel",   "duration": 30 }
+  ]
 }
 ```
 
@@ -115,14 +129,22 @@ POST {{host}}/api/events
 | `endsAt` | yes | ISO-8601 UTC, must be after `startsAt` |
 | `allDay` | no | Default `false` |
 | `recurrence` | no | `RecurrenceRule` object or `null` |
+| `routine` | no | Ordered list; omit or pass `[]` for none. Max 20 steps. |
+
+**Routine validation**
+
+- `name` — 1–60 characters, trimmed
+- `duration` — 1 to 1440 (in minutes; 24 hours max per step)
+- Total routine duration must not exceed **24 hours** (1440 minutes). An event whose steps add up to more than a day is almost certainly a data-entry mistake.
 
 **Response**
 
-The created event, same shape as **Get**.
+The created event, same shape as **Get**. `routineStartAt` and per-step
+`startsAt`/`endsAt` are computed by the server.
 
 **Errors**
 
-- `400 Validation Error` if `endsAt` is not after `startsAt`
+- `400 Bad Request` if `endsAt` is not after `startsAt`, if a routine step fails validation, or if the total routine duration exceeds 24 hours
 - `404 Not Found` if `calendarId` is not owned by the user
 
 ---
@@ -143,6 +165,9 @@ PUT {{host}}/api/events/{id}
 
 Any subset of the fields from **Create**.
 
+If `routine` is provided, it **replaces** the entire list. There is no partial
+update of individual steps — the client sends the full list every time.
+
 **Response**
 
 ```json
@@ -153,7 +178,7 @@ Any subset of the fields from **Create**.
 
 **Errors**
 
-- `400 Validation Error` if the request violates the time constraint
+- `400 Bad Request` if the request violates the time or routine constraints
 - `404 Not Found` if the event is not owned by the user
 
 ---
@@ -161,6 +186,7 @@ Any subset of the fields from **Create**.
 ## Move
 
 Convenience endpoint for drag-and-drop. Equivalent to calling **Update** with new times.
+Routine steps are laid out backward from the new `startsAt` automatically.
 
 ```js
 PUT {{host}}/api/events/{id}/move
@@ -170,8 +196,8 @@ PUT {{host}}/api/events/{id}/move
 
 ```json
 {
-  "startsAt": "2025-07-17T10:00:00Z",
-  "endsAt": "2025-07-17T11:00:00Z"
+  "startsAt": "2025-07-15T18:00:00Z",
+  "endsAt": "2025-07-15T20:30:00Z"
 }
 ```
 
@@ -179,9 +205,13 @@ PUT {{host}}/api/events/{id}/move
 
 ```json
 {
-  "message": "Event moved."
+  "message": "Event moved.",
+  "routineStartAt": "2025-07-15T16:00:00Z"
 }
 ```
+
+The response includes the recomputed `routineStartAt` so the client can update
+the grid without a refetch.
 
 ---
 
@@ -252,6 +282,7 @@ DELETE {{host}}/api/events/{id}/occurrences/{date}
 ## Convert to Task
 
 Deletes the event and creates a task from its fields.
+The event's `routine` is **discarded** — a Task has no preparation concept.
 
 ```js
 POST {{host}}/api/events/{id}/convert-to-task
@@ -313,12 +344,9 @@ POST {{host}}/api/events/bulk/delete
 
 ---
 
-## Bulk Move
+## Bulk Shift
 
-Moves multiple events to a new time block (same delta applied to all)
-or to a different calendar.
-
-**Option A — shift in time**
+Moves multiple events by the same time delta. Useful for "push everything back by an hour".
 
 ```js
 POST {{host}}/api/events/bulk/shift
@@ -337,7 +365,8 @@ POST {{host}}/api/events/bulk/shift
 ```
 
 Shifts `startsAt` and `endsAt` of every event by the same amount.
-Useful for "push everything back by an hour".
+The routine shifts along with the event — the total preparation duration is
+unchanged, so `routineStartAt` shifts by the same delta.
 
 **Response**
 
@@ -351,7 +380,11 @@ Useful for "push everything back by an hour".
 }
 ```
 
-**Option B — change calendar**
+---
+
+## Bulk Move
+
+Moves multiple events to another calendar (or to unassigned).
 
 ```js
 POST {{host}}/api/events/bulk/move
@@ -382,3 +415,7 @@ POST {{host}}/api/events/bulk/move
   "notFound": []
 }
 ```
+
+**Errors**
+
+- `404 Not Found` if `calendarId` is not owned by the caller

@@ -18,10 +18,16 @@ The account holder. Owns every other entity. Identified by email. Has a timezone
 A user-defined, coloured grouping for events and tasks. Equivalent to a list in the sidebar. Not to be confused with the month view.
 
 **Event**
-Something that *happens* at a specific time. Always has a start and an end. Has no completion state. Example: "Team Standup, 9:00–9:30".
+Something that *happens* at a specific time. Always has a start and an end. Has no completion state. May carry a **routine** — an ordered list of preparation steps — for reverse planning. Example: "Meet friends, 17:30–20:00, with a routine starting at 15:30".
 
 **Task**
-Something the user *needs to do*. May or may not have a time. Has a completion state. Example: "Buy groceries".
+Something the user *needs to do*. May or may not have a time. Has a completion state. Never carries a routine. Example: "Buy groceries".
+
+**Routine**
+The ordered list of **preparation steps** attached to an Event. Used for reverse planning — the server lays the steps out backward from the event's `startsAt` so the user knows when to begin preparing. A Task never has a routine.
+
+**Preparation Step**
+A single step within a routine. Defined by a `name` (e.g., "Shower") and a `duration` in minutes. Sequential — one step ends exactly when the next begins. Has no ID and no completion state; it lives and dies with its event.
 
 **RecurrenceRule**
 A value object that describes how an event or task repeats (daily, weekly, monthly, yearly). Defined by a frequency, interval, optional day-of-week set, and an end condition.
@@ -65,6 +71,9 @@ The number of consecutive days on which at least one task was completed. Compute
 
 **Focus Now**
 The next upcoming event or scheduled task. Powers the "Focus Now" panel. Computed from `Event.startsAt` and `Task.scheduledStartAt`.
+
+**Routine Start**
+The moment an event's first preparation step begins. Computed as `Event.startsAt - sum(routine.duration)`. Powers the "start preparing at 3:30 PM" card and the faded prep block on the calendar grid.
 
 **Today's Progress**
 The count of tasks scheduled for today that are completed, versus the total. Powers the "3 / 7" progress indicator.

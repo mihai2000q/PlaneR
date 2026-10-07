@@ -6,6 +6,7 @@ The RDBMS chosen for this application infrastructure is **PostgreSQL**.
   - [Tables](#tables)
   - [Columns](#columns)
   - [Indexes and Constraints](#indexes-and-constraints)
+  - [Preparation Steps Storage](#preparation-steps-storage)
 - [Migrations](#migrations)
   - [Flyway Setup](#flyway-setup)
   - [Create Migration](#create-migration)
@@ -27,6 +28,7 @@ Examples:
 - `users`
 - `calendars`
 - `events`
+- `event_preparation_steps`
 - `tasks`
 - `task_completions`
 - `recurrence_exceptions`
@@ -53,7 +55,7 @@ Examples:
 
 **Foreign keys** follow the pattern `<referenced_table_singular>_id`. For example, a foreign key to `users` is named `user_id`, and a foreign key to `calendars` is named `calendar_id`.
 
-**Timestamps** end in `_at` (`created_at`, `updated_at`, `completed_at`, `starts_at`, `ends_at`).
+**Timestamps** end in `_at` (`created_at`, `updated_at`, `completed_at`, `starts_at`, `ends_at`, `routine_start_at`).
 **Dates** (without a time component) end in `_on` or `_for` when it reads well (`scheduled_for`), otherwise they keep a name that clearly denotes a date.
 
 ### Indexes and Constraints
@@ -64,6 +66,34 @@ Examples:
 - **Indexes** are named `ix_<table>__<column>`, e.g., `ix_tasks__scheduled_for`.
 
 Postgres-generated names for primary keys and unique constraints are acceptable if they are clear, but explicitly named constraints are preferred for consistency.
+
+### Preparation Steps Storage
+
+An event's **routine** — its ordered list of preparation steps — is stored in a
+dedicated table, `event_preparation_steps`, rather than a JSONB column on
+`events`. This keeps the steps queryable (e.g., "what is the longest preparation
+step across all events?") and avoids repeating the step names and durations
+inside every event row.
+
+| Column | Type | Notes |
+|---|---|---|
+| `id` | UUID | Primary key |
+| `event_id` | UUID | FK → `events.id`, `ON DELETE CASCADE` |
+| `name` | text | 1–60 chars |
+| `duration` | int | Minutes, 1–1440 |
+| `position` | int | Order in the sequence, 0-based |
+
+An index on `(event_id, position)` supports the natural read pattern of "get all
+steps for this event in order":
+
+```
+ix_event_preparation_steps__event_id_position
+```
+
+`routine_start_at` on `events` is **not** a stored column. It is computed on
+read from `starts_at` and the sum of the steps' durations. If the query
+performance of "which events need preparation soon?" becomes a concern, a
+materialized column can be added later.
 
 ## Migrations
 
@@ -94,7 +124,7 @@ without editing the build script.
 Migration files are placed under:
 
 ```
-planer.server/src/main/resources/db/migration/
+planer-server/src/main/resources/db/migration/
 ```
 
 ### Create Migration
@@ -123,6 +153,7 @@ Examples:
 - `V3__create_events_table.sql`
 - `V4__add_recurrence_rule_to_events.sql`
 - `V5__add_is_default_to_calendars.sql`
+- `V6__create_event_preparation_steps_table.sql`
 
 **Version numbers are never reused.** If two developers create migrations at the same time,
 the second one to merge must rename their file to the next available version.
@@ -132,7 +163,7 @@ the second one to merge must rename their file to the next available version.
 To apply all pending migrations against the configured database, run:
 
 ```sh
-./gradlew :planer.server:flywayMigrate
+./gradlew :planer-server:flywayMigrate
 ```
 
 This reads the connection details from the environment and applies every migration
@@ -141,7 +172,7 @@ that has not yet been recorded in `flyway_schema_history`.
 To inspect the state of the schema without changing anything:
 
 ```sh
-./gradlew :planer.server:flywayInfo
+./gradlew :planer-server:flywayInfo
 ```
 
 ### Apply Migration — with the connection flag
@@ -150,7 +181,7 @@ If the target database is not the one configured in the environment, Flyway acce
 details as task parameters:
 
 ```sh
-./gradlew :planer.server:flywayMigrate \
+./gradlew :planer-server:flywayMigrate \
   -Pflyway.url=jdbc:postgresql://{{database_server}}:{{database_port}}/{{database_name}} \
   -Pflyway.user={{database_user}} \
   -Pflyway.password={{database_password}}
@@ -205,8 +236,8 @@ Regardless of the choice, the following principles apply:
 ## Open Questions
 
 1. **ORM / query library.** Exposed, jOOQ, or plain SQL — to be decided.
-2. **Value object flattening.** `RecurrenceRule` is a value object in the domain; the schema representation (columns vs a JSONB field) is still open.
+2. **Value object flattening.** `RecurrenceRule` flattens onto `events` as columns; `PreparationStep` uses a dedicated table (`event_preparation_steps`). Both approaches are in use. Whether to unify them, or leave each on its own merits, is still open.
 3. **UUID generation.** UUID v7 is preferred for `id` columns, but the generation site (application vs database default) is not yet fixed.
 4. **Soft deletes.** Whether any entities get a `deleted_at` column instead of being hard-deleted. Currently, hard-delete is assumed everywhere.
 5. **Recurrence exceptions table shape.** Whether to store exceptions as a dedicated table (`recurrence_exceptions`) or as a JSONB column on the parent event/task.
-6. **Indexes for the calendar view.** The `GET /api/events?from=...&to=...` query will be the hottest read path; the exact indexing strategy will be decided once the query is written.
+6. **Indexes for the calendar view.** The `GET /api/events?from=...&to=...` query will be the hottest read path. The `routine_start_at` value is computed rather than stored, so it can't be indexed directly — if "which events need preparation soon?" becomes a hot query, a materialized column or a generated column will be needed. The exact strategy will be decided once the query is written.
