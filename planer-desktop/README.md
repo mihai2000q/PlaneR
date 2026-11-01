@@ -193,22 +193,25 @@ see [Testing — Desktop](../.docs/testing/Testing.Desktop.md).
 
 ## Live Reload
 
-> **Not verified yet.** These are the standard Compose Hot Reload steps; they have not been tried in this project.
+**Compose Hot Reload** is bundled with the Compose Gradle plugin, so the build already has its tasks (`hotRun`,
+`reload`, `hotDev`, …); nothing extra needs to be added to `build.gradle.kts`.
 
-To use live reload while developing the desktop application, you need to run it with the **Compose Hot Reload** feature
-enabled. This is available through the **Compose Multiplatform** IntelliJ plugin.
-
-Once the plugin is installed:
-
-1. Open the project in **IntelliJ IDEA**
-2. Run the `main` function in `Main.kt` with the **Run with Hot Reload** option
-3. Any changes made to the UI code in this module will be reflected in the running window without a full restart
-
-Alternatively, from the command line, you can use the Gradle continuous build mode:
+**From the IDE (recommended).** Open the repository root in **IntelliJ IDEA** (or Android Studio) with the **Compose
+Multiplatform** plugin, then run the `main` function in `Main.kt` with the hot-reload gutter action. The IDE runs:
 
 ```sh
-./gradlew :planer-desktop:run --continuous
+./gradlew :planer-desktop:hotRun --mainClass "app.planer.desktop.MainKt"
 ```
 
-The above command will watch for file changes and rebuild the application automatically. For more configuration options,
-check the Gradle build script, which is already included in the application.
+Edit a composable and save; the running window updates without a restart.
+
+**From the command line.** The same `hotRun` command works only if Gradle can find a **JetBrains Runtime (JBR) 21**,
+because Hot Reload needs that JDK variant. On a machine with only a regular JDK 21, it fails with
+`Failed to find suitable JetBrains Runtime 21 installation on your system`. The IDE does not hit this because it ships
+its own JBR. To use it from the command line, install a JBR 21 or let Gradle download one with a toolchain resolver
+plugin. With the app running through `hotRun`, `./gradlew reload` applies code changes to all running applications.
+
+For plain `./gradlew :planer-desktop:run`, there is no hot reload; restart the app to see changes.
+
+> **Verified so far:** that the hot-reload tasks exist and that `hotRun` fails with the missing-JBR error on a machine
+> with a regular JDK 21. The reload itself has not been observed in this project's command-line setup.
