@@ -9,7 +9,7 @@ kotlin {
 
     android {
         namespace = "app.planer.shared"
-        compileSdk = 35
+        compileSdk = 37
         minSdk = 26
 
         withHostTest {}
