@@ -4,6 +4,8 @@ End-to-end tests for the Android application drive the **real Jetpack Compose UI
 
 Shared conventions (naming, Given/When/Then) are described in the [overview](Testing.md#conventions).
 
+> **Status: partly built.** The instrumented-test setup exists and works on an emulator: `./gradlew :planer-android:connectedDebugAndroidTest` runs `PlaneRAppTest`, a component-level test that needs no server. The *end-to-end* layer described below — tests against a real server, sample data, the `AuthScreen` — is planned.
+
 - [Get Started](#get-started)
 - [Conventions](#conventions)
 - [Misc](#misc)
@@ -24,23 +26,23 @@ Alternatively, the `startup.sh` script at the repository root does all of this i
 
 The tests run on a connected Android device or a running emulator. Android Studio manages both; from the **Device Manager**, launch any emulator with API 26 or higher.
 
-To verify the device is visible to Gradle:
+To verify a device is visible, run:
 
 ```sh
-./gradlew :planer-android:connectedCheck --dry-run
+adb devices
 ```
 
-If the task lists a target device, you're ready.
+(`adb` is in the SDK's `platform-tools` folder.) If it lists a device in the `device` state, you're ready. Emulators created in Android Studio are listed in the Device Manager; one with a missing configuration file will not start, so recreate it there.
 
 ### Running the Tests
 
 To run the Android instrumented tests:
 
 ```sh
-./gradlew :planer-android:connectedAndroidTest
+./gradlew :planer-android:connectedDebugAndroidTest
 ```
 
-The tests are installed and executed on the device, then the results are reported back through Gradle.
+The app and a test APK are installed and executed on the device, then the results are reported back through Gradle and the app is uninstalled again.
 
 ## Conventions
 
@@ -118,7 +120,7 @@ Tags are stable identifiers that survive copy changes and layout refactors. Keep
 Instrumented tests on an emulator are noticeably slower than desktop tests. To keep them fast:
 
 - Prefer targeting a single device at a time
-- Run `connectedAndroidTest` for a specific module and class rather than the entire suite during development
+- Run `connectedDebugAndroidTest` for a specific module and class rather than the entire suite during development
 - Use `adb shell am instrument -w` directly when iterating on a single test
 
 Emulators with API 30+ and hardware acceleration enabled run significantly faster than older or software-rendered ones.

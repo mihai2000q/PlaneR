@@ -44,7 +44,7 @@ An event or task whose `calendarId` is null. It exists but is not grouped under 
 ## Time and Views
 
 **Timezone**
-Two related things. `User.timezone` (an IANA identifier such as `Europe/Berlin`) is authoritative for "today", "this week", and date-range filters, and is the default for new items. Each event and task also has its own `timeZone`, which anchors recurrence and all-day boundaries so that existing items don't move when the user's timezone changes. The server never assumes a timezone. See [Domain → Timezones](Domain.md#timezones).
+Two related things. `User.timezone` (an IANA identifier such as `Europe/Berlin`) is authoritative for "today", "this week", and date-range filters, and is the default for new items. Each event and task also has its own `timeZone`, which anchors recurrence and all-day boundaries so that existing items don't move when the user's timezone changes. The server never assumes a timezone. See [Domain → Timezones](../domain/Domain.md#timezones).
 
 **Today**
 The current date in the user's timezone.

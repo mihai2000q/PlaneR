@@ -4,6 +4,8 @@ End-to-end tests for the desktop application drive the **real Compose for Deskto
 
 Shared conventions (naming, Given/When/Then) are described in the [overview](Testing.md#conventions).
 
+> **Status: planned.** The `uiTest` task, the server and sample data these tests depend on, and the `AuthScreen` do not exist yet. What exists today are component-level tests under plain `./gradlew :planer-desktop:test` (see `PlaneRAppTest`), which render a composable in isolation and need no server. This document describes the end-to-end layer to be built on top of them.
+
 - [Get Started](#get-started)
 - [Conventions](#conventions)
 - [Misc](#misc)
@@ -54,26 +56,26 @@ Each test:
 Example:
 
 ```kotlin
+@OptIn(ExperimentalTestApi::class)
 class AuthScreenTest {
 
-    @get:Rule
-    val rule = createComposeRule()
-
     @Test
-    fun `when valid credentials are submitted, then it navigates to the calendar`() {
+    fun `when valid credentials are submitted, then it navigates to the calendar`() = runComposeUiTest {
         // given
-        rule.setContent { PlaneRApp() }
-        rule.onNodeWithText("Email").performTextInput("alex@example.com")
-        rule.onNodeWithText("Password").performTextInput("Password123!")
+        setContent { PlaneRApp() }
+        onNodeWithText("Email").performTextInput("alex@example.com")
+        onNodeWithText("Password").performTextInput("Password123!")
 
         // when
-        rule.onNodeWithText("Sign in").performClick()
+        onNodeWithText("Sign in").performClick()
 
         // then
-        rule.onNodeWithText("Today").assertIsDisplayed()
+        onNodeWithText("Today").assertIsDisplayed()
     }
 }
 ```
+
+`runComposeUiTest` comes from `androidx.compose.ui.test.v2`. The Android version of this test differs in using a JUnit 4 rule, as described in [Testing — Android](Testing.Android.md).
 
 ## Misc
 
@@ -107,7 +109,7 @@ Modifier.testTag("event-card-${event.id}")
 Then select it in the test:
 
 ```kotlin
-rule.onNodeWithTag("event-card-22222222-...").assertIsDisplayed()
+onNodeWithTag("event-card-22222222-...").assertIsDisplayed()
 ```
 
 Tags are stable identifiers that survive copy changes and layout refactors. Keep tag names in a single `TestTags` object in the desktop module. The Android client defines its own; by convention the two use the same naming pattern (`event-card-<id>`) so that tests read alike, but nothing enforces it.

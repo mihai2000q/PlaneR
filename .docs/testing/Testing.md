@@ -8,7 +8,7 @@ PlaneR is tested at three levels, and each level has its own document:
 | **Integration** | The server through its HTTP layer, against a real Postgres | [Server](Testing.Server.md#integration-testing) |
 | **End-to-End** | Real clients, driven through their UI, against a real server | [Desktop](Testing.Desktop.md), [Android](Testing.Android.md) |
 
-Tests are written in **Kotlin** and run through **JUnit 5** with **Kotest assertions** (`shouldBe`, `shouldNotBeNull`, …). Compose UI tests use **Compose UI Testing**, whose test rules are JUnit 4 (`@get:Rule`); the two client modules therefore also depend on JUnit 4 for their UI tests. The Compose UI Testing API is the same on Compose for Desktop and Jetpack Compose, but each client has its own test code — there is no shared UI to test in common.
+Tests are written in **Kotlin** and run through **JUnit 5** with **Kotest assertions** (`shouldBe`, `shouldNotBeNull`, …). Compose UI tests use **Compose UI Testing**, but the two clients use it differently. **Desktop** component tests use the `runComposeUiTest` API (`androidx.compose.ui.test.v2`), which needs no JUnit 4 rule and runs on the JUnit 5 platform. **Android** UI tests are *instrumented* tests run by Android's JUnit 4 runner, so they use the `createComposeRule` rule (`androidx.compose.ui.test.junit4.v2`, `@get:Rule`). Each client has its own test code — there is no shared UI to test in common.
 
 - [Conventions](#conventions)
   - [Naming](#naming)

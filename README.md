@@ -11,6 +11,8 @@
 ![Version](https://img.shields.io/badge/version-0.1.0-1098ad)
 
 > **Status:** Early development. The API, schema, and domain model are subject to change without notice until the first stable release.
+>
+> **What exists today:** a building skeleton of all four modules — the Gradle build, a shared module with a health DTO and two validation rules, a Ktor server that serves `GET /health`, and a desktop and an Android app that each show a placeholder screen. Nothing else is implemented yet; the documentation describes the design the project is being built towards, and the module READMEs mark which parts exist.
 
 - [PlaneR](#planer)
   - [Abstract](#abstract)
@@ -41,24 +43,33 @@ Desktop and Android do **not** share screens or view models. They share the tool
 To run PlaneR locally, you need:
 
 - **JDK 21 or later** — `https://adoptium.net/`
-- **Docker** — `https://www.docker.com/products/docker-desktop/` (for the database and server containers)
-- **Android Studio** (only if developing the Android application) — `https://developer.android.com/studio`
+- **Docker** — `https://www.docker.com/products/docker-desktop/` (for the database and server containers; not needed until the database exists)
+- **Android Studio** (only if developing the Android application) — `https://developer.android.com/studio`, with **Android SDK Platform 37** installed
 - **IntelliJ IDEA** (recommended for the shared and server code) — `https://www.jetbrains.com/idea/`
 
-Node.js, Python, or any other runtime is not required.
+You do **not** need to install Gradle: the repository contains the Gradle wrapper (`gradlew` / `gradlew.bat`). Node.js, Python, or any other runtime is not required.
 
 ## Get Started
 
-To get started on the application, you need:
+The whole project is one **Gradle** build with four modules (`planer-shared`, `planer-server`, `planer-desktop`, `planer-android`). Run every command from the repository root.
 
-- the **server** up and running with its dependencies
+**What works today:**
+
+```sh
+./gradlew build                         # build and test everything (Android needs the SDK, see Prerequisites)
+./gradlew :planer-server:run            # start the server on http://localhost:8080  (try: curl localhost:8080/health)
+./gradlew :planer-desktop:run           # open the desktop app
+./gradlew :planer-android:installDebug  # install the Android app on a connected device or emulator
+```
+
+On Windows PowerShell or `cmd`, use `gradlew.bat` instead of `./gradlew`.
+
+To get started on the application, you eventually need:
+
+- the **server** up and running with its dependencies (a database, planned)
 - and at least one of the platform applications (**Desktop** or **Android**)
 
-If you have **JDK 21+** and **Docker** installed, you can take the shortest route. Fire the following shell script: `startup.sh` to launch the server and database containers.
-
-Otherwise, follow the setup of each module below (only one of Desktop or Android is needed, depending on where you prefer to run the app).
-
-Additionally, if you prefer to run everything in containers and not install JDK or Gradle, you can run the `run-container.sh` script to run all the Docker containers and apply the database migrations.
+**Planned, not built yet:** the `startup.sh` script (launch the server and database containers in one step) and the `run-container.sh` script (run everything in containers without installing a JDK) exist but are **empty**, and there is no `docker-compose.yml` yet. Until they are written, follow the setup of each module below (only one of Desktop or Android is needed, depending on where you prefer to run the app).
 
 ### Shared
 
@@ -72,7 +83,7 @@ For a detailed setup, check out the [documentation](planer-shared/README.md).
 
 This is the HTTP Server (or backend) of the **PlaneR** application, which is written completely in Kotlin using the **Ktor** framework.
 
-Once running, the server exposes a health endpoint at `GET /health` that returns `200 OK` when both the server and its database connection are healthy, and `503 Service Unavailable` otherwise. This is used by the deployment platform for uptime monitoring and does not require authentication. See [Api](.docs/api/Api.md#health) for the response format.
+Once running, the server exposes a health endpoint at `GET /health`. It returns `200 OK` when the server is healthy and, once the database exists, `503 Service Unavailable` when the database connection is not. (Today there is no database, so it only reports that the server is up.) This is used by the deployment platform for uptime monitoring and does not require authentication. See [Api](.docs/api/Api.md#health) for the response format.
 
 For a detailed setup on the server, check out the [documentation](planer-server/README.md).
 
@@ -95,10 +106,10 @@ The full documentation lives in [`.docs/`](.docs/). Each document is a focused r
 - **[Features](.docs/features/Features.md)** — What the application does, and what is planned or deferred.
 - **[Architecture](.docs/architecture/Architecture.md)** — How the modules fit together, the request flow, and cross-cutting concerns.
 - **[Error Handling](.docs/architecture/Error-Handling.md)** — How errors flow from server to client.
-- **[Security](.docs/security/Security.md)** — Access control, password storage, JWT, transport security, and input validation.
-- **[Database](.docs/infrastructure/Database.md)** — Naming conventions, schema, and Flyway migration workflow.
-- **[Deployment](.docs/infrastructure/Deployment.md)** — Environments, CI/CD pipelines, TLS, backups, and secrets.
-- **[Domain](.docs/domain/Domain.md)** — Domain models, value objects, enums, task/event conversion, and recurrence.
+- **[Security](.docs/security/Security.md)** — Access control, passwords, access/refresh/one-time tokens, transport security, and rate limiting.
+- **[Database](.docs/infrastructure/Database.md)** — Naming conventions, schema, indexes, Flyway migrations, and data access.
+- **[Deployment](.docs/infrastructure/Deployment.md)** — Environments, CI, releases, TLS, backups, and secrets.
+- **[Domain](.docs/domain/Domain.md)** — Domain models, timezones, task/event conversion, recurrence, and preparation steps.
 - **[Api](.docs/api/Api.md)** — Conventions, authentication, error format, and pagination.
 - **[Testing](.docs/testing/Testing.md)** — Unit, integration, and end-to-end test strategy.
 - **[Git](.docs/dev/Git.md)** — Issue labels, branch naming, and commit conventions.

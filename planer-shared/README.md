@@ -82,27 +82,26 @@ Because **Shared** is a library, it cannot be run standalone. To verify that the
 
 ## Structure
 
-The module follows the standard KMP layout, with `commonMain` holding the bulk of the code and platform-specific source sets only for `expect`/`actual` implementations.
+The module follows the standard KMP layout, with `commonMain` holding the bulk of the code and platform-specific source sets only for `expect`/`actual` implementations. It has two targets: **JVM** (used by the server and the desktop client) and **Android** (used by the Android client). iOS is added later.
+
+What exists today:
 
 ```
 planer-shared/
 ├── README.md
 ├── build.gradle.kts
 └── src/
-    ├── commonMain/
-    │   └── kotlin/app/planer/shared/
-    │       ├── domain/
-    │       ├── dto/
-    │       ├── validation/
-    │       ├── network/
-    │       └── auth/
-    ├── commonTest/
-    ├── androidMain/
-    ├── jvmMain/
-    ├── jvmTest/
-    ├── iosMain/          (future)
-    └── iosTest/          (future)
+    ├── commonMain/kotlin/app/planer/shared/
+    │   ├── dto/HealthResponse.kt
+    │   └── validation/Validation.kt
+    └── commonTest/kotlin/app/planer/shared/
+        ├── dto/HealthResponseTest.kt
+        └── validation/ValidationTest.kt
 ```
+
+Planned, not yet created: `domain/`, `network/`, and `auth/` under `commonMain`, plus platform source sets (`jvmMain`, `androidMain`, `iosMain`) *only if* an `expect`/`actual` is ever needed. None is needed yet, so none exists.
+
+The Android target uses the `com.android.kotlin.multiplatform.library` plugin (the Android Gradle Plugin 9 replacement for `com.android.library` in multiplatform modules), configured inside the `kotlin { android { … } }` block. `withHostTest {}` makes the Android target run `commonTest` on the JVM as well.
 
 ### Domain
 
@@ -112,17 +111,23 @@ These are the in-memory representation used by the server's business logic and b
 
 ### Dto
 
+> Today this contains only `HealthResponse`. The DTOs for the real endpoints come with each controller.
+
 Request and response bodies for the API described in [Api](../.docs/api/Api.md). Kept separate from the domain models even though they are similar today — the API includes fields the domain does not (e.g., `occurrenceDate` on expanded recurring events), and the two will diverge over time.
 
 DTOs are serialized with **kotlinx.serialization**.
 
 ### Validation
 
+> Today this contains two rules: a title of 1–120 characters and a `#RRGGBB` color. The rest come with the controllers that need them.
+
 Rules like "title is 1–120 characters", "`endsAt` must be after `startsAt`", "color matches `^#[0-9A-Fa-f]{6}$`".
 
 Validating on both client (for immediate UI feedback) and server (as the source of truth) using the same code eliminates drift between the two. Validation rules are pure Kotlin and have no dependencies on either side.
 
 ### Network
+
+> **Not built yet.** The `network/` and `auth/` packages, the endpoint files, `ApiClient`, and `TokenStorage` below are the planned design.
 
 A thin HTTP client built on **Ktor Client** that both clients use to talk to the server. It wraps the endpoints defined in [Api](../.docs/api/Api.md) and returns typed responses.
 
@@ -184,7 +189,7 @@ dependencies {
 }
 ```
 
-Because planer-shared is a KMP module, it automatically publishes the correct target artifact to each consumer — the JVM variant to Server and Desktop, and the Android variant to the Android client.
+Because planer-shared is a KMP module, Gradle automatically picks the correct target for each consumer — the JVM variant for Server and Desktop, and the Android variant for the Android client.
 
 The Server uses only the models, DTOs, and validation rules. It does not call the networking client, although the client library ends up on its classpath.
 
@@ -205,6 +210,6 @@ To run them for all targets:
 ```
 
 Test fixtures such as fake token storage, in-memory fakes, and DTO builders live under
-`commonTest/kotlin/app/planer/shared/testutil/` and are reused by tests **within this module**.
+`commonTest/kotlin/app/planer/shared/testutil/` (not created yet; none are needed so far) and are reused by tests **within this module**.
 
 Source sets named `commonTest` are not visible to other modules. If the server or a client needs the same fixtures, expose them as a Gradle **test fixtures** source set or a small dedicated testing module rather than copying them. Until that need appears, each module keeps its own fixtures.

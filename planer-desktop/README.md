@@ -42,6 +42,8 @@ To get started on contributing to this project, you can do so by following the n
 
 ### Environment Variables
 
+> **Not built yet.** There is no `.env.dev` file, and the app does not talk to the server yet, so it needs no configuration today. How release builds learn the server URL is an open question (see [Architecture → Open Questions](../.docs/architecture/Architecture.md#open-questions)). The rest of this section is the planned development setup.
+
 Duplicate the `.env.dev` file and rename it to `.env`. The desktop application reads the server URL and other configuration values from this file at build time.
 
 The expected variables are:
@@ -72,7 +74,7 @@ To run the application in development, type the following command from the **roo
 ./gradlew :planer-desktop:run
 ```
 
-The desktop application will launch in a native window, connecting to the server specified in your `.env` file.
+The desktop application will launch in a window. Today it shows a placeholder screen — a calendar-color field validated with a rule from `planer-shared` — and does not connect to the server. Once the networking client exists, it will connect to the server specified in your `.env` file.
 
 If you are using **IntelliJ IDEA**, you can also run the application directly from the IDE by opening the `Main.kt` file and clicking the green run icon next to the `main` function.
 
@@ -99,11 +101,17 @@ If you want to build installers for a specific platform, use the following tasks
 
 The resulting installers will be located in `planer-desktop/build/compose/binaries/`.
 
+> **Verified so far:** only the uber JAR below. Building an MSI needs the **WiX Toolset** installed, and a DMG or DEB can only be built on macOS or Linux respectively. The installer tasks are configured but have not been run.
+
+Installers require a major version of at least 1, so the installer version (`packageVersion` in `build.gradle.kts`) is `1.0.0` and is **not** taken from the 0.x project version. It has to be kept in step with releases by hand.
+
 To build an executable JAR that can be run on any platform with a JVM installed:
 
 ```sh
 ./gradlew :planer-desktop:packageUberJarForCurrentOS
 ```
+
+The JAR is written to `planer-desktop/build/compose/jars/` (for example `PlaneR-windows-x64-1.0.0.jar`) and runs with `java -jar`.
 
 ## Architecture
 
@@ -111,13 +119,13 @@ The desktop module is a complete, standalone client. It uses the **shared** modu
 
 The main responsibilities of this module are:
 
-- **Application entry point** — the `main` function that launches the Compose application
-- **UI** — screens, components, navigation, and view models
-- **Window configuration** — size, title, icon, and platform-specific settings
-- **Platform integrations** — desktop-only features such as tray icons, native menus, and file dialogs
-- **Token storage** — the OS-keychain-backed implementation of `TokenStorage`
-- **Forced-update screen** — shown when `ApiClient` signals `UPGRADE_REQUIRED`
-- **Packaging** — Gradle configuration for building native installers
+- **Application entry point** — the `main` function that launches the Compose application *(exists)*
+- **UI** — screens, components, navigation, and view models *(a single placeholder screen exists)*
+- **Window configuration** — size, title, icon, and platform-specific settings *(title only)*
+- **Packaging** — Gradle configuration for building native installers *(configured)*
+- **Platform integrations** — desktop-only features such as tray icons, native menus, and file dialogs *(planned)*
+- **Token storage** — the OS-keychain-backed implementation of `TokenStorage` *(planned)*
+- **Forced-update screen** — shown when `ApiClient` signals `UPGRADE_REQUIRED` *(planned)*
 
 Business rules do not live here: recurrence, routine layout, and ownership are the server's job, and validation rules come from [`planer-shared`](../planer-shared/README.md). Screens are **not** shared with the [Android](../planer-android/README.md) client; a screen that exists on both is implemented on both.
 
@@ -141,9 +149,11 @@ To run all tests across the project:
 ./gradlew test
 ```
 
-The framework is **Kotlin Test** with **JUnit 5**, alongside **Compose UI Testing** (which uses JUnit 4 rules) for rendering composables in isolation.
+The framework is **Kotlin Test** on the **JUnit 5** platform with **Kotest assertions**. Composables are tested in isolation with **Compose UI Testing**, using the `runComposeUiTest` API (from `androidx.compose.ui.test.v2`), which needs no JUnit 4 rule. Today there is one test class, `PlaneRAppTest`.
 
 ### End-to-End Testing
+
+> **Not built yet.** There is no `uiTest` task. This section describes the planned setup.
 
 End-to-end tests drive the real desktop UI against a running server, verifying that the whole system works from the user's perspective.
 
@@ -154,6 +164,8 @@ End-to-end tests drive the real desktop UI against a running server, verifying t
 For the full strategy — including how to run the tests headlessly, custom matchers, and test tags — see [Testing — Desktop](../.docs/testing/Testing.Desktop.md).
 
 ## Live Reload
+
+> **Not verified yet.** These are the standard Compose Hot Reload steps; they have not been tried in this project.
 
 To use live reload while developing the desktop application, you need to run it with the **Compose Hot Reload** feature enabled. This is available through the **Compose Multiplatform** IntelliJ plugin.
 

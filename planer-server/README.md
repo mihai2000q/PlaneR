@@ -31,6 +31,8 @@ This is the HTTP Server (or backend) of the **PlaneR** application, written comp
 
 It owns the data and the business rules: authentication, authorization, persistence, and everything the clients rely on. The internal structure of the module is deliberately left open and will be documented as the codebase takes shape. The high-level responsibilities and request flow are described in the [Architecture section](#architecture) below.
 
+> **Current status: skeleton.** Today the server starts, serves `GET /health`, and has one test. Everything else in this README — the database, migrations, authentication, the Docker setup, the `.env` file, the sample-data scripts — describes the **planned** setup and does not exist yet. Sections that depend on something not yet built say so.
+
 ## Prerequisites
 
 Before you can get started, there are some things you need to have installed on your system.
@@ -62,6 +64,8 @@ To get started on contributing to this project, you can do so by following the n
 
 ### Environment Variables
 
+> **Not built yet.** There is no `.env.dev` file, and the server currently reads only `SERVER_PORT`. The rest of this section is the planned configuration.
+
 Create a `.env` file by copying the provided `.env.dev` file. This file contains the variables needed for the database container initialization and the application configuration.
 
 The required variables are:
@@ -82,7 +86,9 @@ See [Security](../.docs/security/Security.md) for the requirements on `JWT_SECRE
 
 ### Docker Containers
 
-A `docker-compose.yml` file has been provided at the repository root. It reads variables from `.env` and starts:
+> **Not built yet.** There is no `docker-compose.yml`, and `startup.sh` and `run-container.sh` are empty. You do not need Docker to run the server today.
+
+A `docker-compose.yml` file will be provided at the repository root. It reads variables from `.env` and starts:
 
 - the **database** container (Postgres)
 - the **server** container (running in development mode by default)
@@ -117,11 +123,11 @@ To run the application from the CLI:
 ./gradlew :planer-server:run
 ```
 
-The application will run by default on port **8080**. This can be changed via the `SERVER_PORT` environment variable or by editing `application.conf` under `src/main/resources`.
+The application will run by default on port **8080**. This can be changed via the `SERVER_PORT` environment variable or by editing `application.conf` under `src/main/resources`. Stop it with `Ctrl+C`.
 
 ### Quick Test
 
-The simplest check that the server is up and reachable is the health endpoint. It does not require authentication and reports whether the database is reachable:
+The simplest check that the server is up and reachable is the health endpoint. It does not require authentication. Once a database exists it will also report whether the database is reachable; **for now it only reports that the server is running**:
 
 ```sh
 curl http://localhost:8080/health
@@ -133,15 +139,15 @@ A healthy response looks like:
 { "status": "healthy" }
 ```
 
-If the database is unreachable, the server returns `503 Service Unavailable` with `{ "status": "unhealthy" }`. The cause is written to the server log, not to the response. See [Api → Health](../.docs/api/Api.md#health).
+Once the database check exists, an unreachable database will make the server return `503 Service Unavailable` with `{ "status": "unhealthy" }`. The cause is written to the server log, not to the response. See [Api → Health](../.docs/api/Api.md#health).
 
-To verify that authentication is wired up correctly, try:
+Once authentication exists, you can verify it is wired up with:
 
 ```
 GET {{host}}/api/users/me
 ```
 
-Without a token, this returns `401 Unauthorized`. That is the expected result and confirms that the API and the database are both reachable.
+Without a token, this will return `401 Unauthorized`. **Today it returns `404`**, because that route does not exist yet.
 
 ## Sample Data
 
@@ -169,6 +175,8 @@ java -jar planer-server/build/libs/planer-server-all.jar
 
 ## Project Structure
 
+What exists today:
+
 ```
 planer-server/
 ├── README.md
@@ -176,24 +184,36 @@ planer-server/
 └── src/
     ├── main/
     │   ├── kotlin/app/planer/server/
-    │   │   ├── Application.kt      # Ktor entry point
-    │   │   ├── config/             # Config loading
-    │   │   ├── plugin/             # Ktor plugins (auth, routing, status pages)
-    │   │   ├── route/              # One file per API controller
-    │   │   ├── service/            # Business logic — TBD
-    │   │   ├── repository/         # Data access — TBD
-    │   │   ├── database/           # Schema, tables, migrations glue
-    │   │   └── security/           # JWT, password hashing
+    │   │   ├── Application.kt          # module(): the Ktor module, referenced from application.conf
+    │   │   ├── plugin/
+    │   │   │   ├── Serialization.kt    # ContentNegotiation (JSON)
+    │   │   │   └── Routing.kt
+    │   │   └── route/
+    │   │       └── HealthRoutes.kt     # GET /health
     │   └── resources/
-    │       ├── application.conf        # Ktor configuration
-    │       ├── application-test.conf   # Configuration for integration tests
-    │       ├── logback.xml
-    │       └── db/migration/           # Flyway SQL migrations
-    ├── test/kotlin/app/planer/server/
-    │   └── ...                     # Unit tests, mirroring the main package
-    └── integrationTest/kotlin/app/planer/server/
-        ├── core/                   # Test Application, BaseIntegrationTest, AppHttpClient
-        └── integration/            # Integration tests, grouped by collection
+    │       ├── application.conf        # Ktor configuration (port, module)
+    │       └── logback.xml
+    └── test/kotlin/app/planer/server/
+        └── route/HealthRoutesTest.kt
+```
+
+The server's entry point is Ktor's `EngineMain` (the `application` plugin's main class); `application.conf` names the module to load.
+
+Planned, not yet created:
+
+```
+src/main/kotlin/app/planer/server/
+├── config/             # Config loading
+├── service/            # Business logic — TBD
+├── repository/         # Data access — TBD
+├── database/           # Exposed table definitions, Flyway glue
+└── security/           # JWT, password hashing
+src/main/resources/
+├── application-test.conf   # Configuration for integration tests
+└── db/migration/           # Flyway SQL migrations
+src/integrationTest/kotlin/app/planer/server/
+├── core/                   # Test Application, BaseIntegrationTest, AppHttpClient
+└── integration/            # Integration tests, grouped by collection
 ```
 
 The exact package layout inside `service/`, `repository/`, and `database/` is not yet fixed and will be documented as the codebase takes shape.
@@ -237,6 +257,8 @@ The controllers are:
 
 ### Authentication
 
+> **Not built yet.** No authentication or `/api` routes exist. This section describes the planned behaviour.
+
 Endpoints that do not allow anonymous requests expect a **JWT** in the `Authorization` header, as a **Bearer Token**. The server uses **HS256** for signing.
 
 To obtain a token, call the login endpoint:
@@ -265,6 +287,8 @@ The database chosen for this application infrastructure is **PostgreSQL**.
 For more information about the database — naming conventions, schema, indexes, and value-object storage — please check out the [Database documentation](../.docs/infrastructure/Database.md). Data access uses **Exposed** (DSL).
 
 ### Migration
+
+> **Not built yet.** There is no database, no Flyway dependency, and no `flywayMigrate` task. This section describes the planned setup.
 
 **Flyway** is the database migration tool. Migration files are versioned SQL scripts under `src/main/resources/db/migration/` and are applied automatically at startup, keeping the schema in sync with the codebase. Applied migrations are never edited; mistakes are fixed with a new migration (Flyway Community has no undo — see [Database → Rolling Back](../.docs/infrastructure/Database.md#rolling-back)).
 
@@ -300,9 +324,13 @@ To run all unit tests:
 ./gradlew :planer-server:test
 ```
 
+Today there is one test class, `HealthRoutesTest`, which uses Ktor's `testApplication` without a database.
+
 The component under test is held in a field named **`uut`** (*Unit Under Test*).
 
 ### Integration Testing
+
+> **Not built yet.** The `integrationTest` source set and task, Testcontainers, and the supporting classes below do not exist. This section describes the planned setup.
 
 Integration tests exercise the server through its HTTP layer against a **real Postgres instance** running in a **Testcontainers** container. They live under `src/integrationTest/kotlin/app/planer/server/integration/`, grouped by test collection.
 
@@ -325,6 +353,8 @@ Each test collection (an abstract base class owning a container and a dataset) i
 For the full picture — including how to write a collection, seed data, and assert with the client — see [Testing — Server](../.docs/testing/Testing.Server.md).
 
 ## Live Reload
+
+> **Not verified yet.** The commands below are the standard Ktor approach, but they have not been tried in this project.
 
 Ktor has built-in support for auto-reload during development. When the server is started with development mode enabled, it watches the compiled classes and reloads them when they change.
 

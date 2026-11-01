@@ -12,8 +12,11 @@ know what is real and what is an aspiration.
 
 ## Implemented
 
-> Nothing yet — the project is at the documentation stage.
-> This section will be populated as features land.
+> No user-facing features yet. The repository contains a building skeleton of all four
+> modules: a Gradle build, a shared module with a health DTO and two validation rules, a
+> Ktor server serving `GET /health`, and a desktop and an Android app that each show a
+> placeholder screen. Everything below is design; this section will be populated as
+> features land.
 
 ## Planned
 
