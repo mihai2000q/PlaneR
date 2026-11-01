@@ -9,7 +9,7 @@ kotlin {
 
 android {
     namespace = "app.planer.android"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "app.planer"

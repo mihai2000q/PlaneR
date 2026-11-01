@@ -58,7 +58,7 @@ To run PlaneR locally, you need:
 - **Docker** — `https://www.docker.com/products/docker-desktop/` (for the database and server containers; not needed
   until the database exists)
 - **Android Studio** (only if developing the Android application) — `https://developer.android.com/studio`, with
-  **Android SDK Platform 37** installed
+  **Android SDK Platform 36** installed
 - **IntelliJ IDEA** (recommended for the shared and server code) — `https://www.jetbrains.com/idea/`
 
 You do **not** need to install Gradle: the repository contains the Gradle wrapper (`gradlew` / `gradlew.bat`). Node.js,

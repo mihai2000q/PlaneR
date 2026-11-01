@@ -43,18 +43,21 @@ version automatically.
 ### Android Studio
 
 The recommended IDE for developing the Android application is **Android Studio**. The build uses **Android Gradle Plugin
-9.5**, so you need a recent Android Studio release that supports it (the AGP release notes list the matching Studio
-version). Android Studio bundles the Android SDK, the emulator, and all the tooling needed to build and run the app. You
-can download it from here: `https://developer.android.com/studio`.
+9.1.0**, which is the newest version the project's Android Studio supports; Studio refuses to open a project that uses a
+newer AGP than it knows. If you update Android Studio, the AGP version in `gradle/libs.versions.toml` can be raised to
+match (the AGP release notes list the Studio version each AGP needs). Android Studio bundles the Android SDK, the
+emulator, and all the tooling needed to build and run the app. You can download it from here:
+`https://developer.android.com/studio`.
 
 ### Android SDK
 
 The application **targets Android 14 (API 34)** and has a **minimum supported version of Android 8.0 (API 26)**. It is
-**compiled against API 37**, because the current Jetpack Compose and AndroidX libraries require it. The required SDK
-components will be installed automatically by Android Studio on first launch, but you can also install them manually
-through the **SDK Manager**:
+**compiled against API 36**, the newest level AGP 9.1.0 was tested with. (The Jetpack Compose version is pinned through
+the Compose BOM in `gradle/libs.versions.toml` for the same reason: newer Compose releases require API 37, which this AGP
+does not yet support.) The required SDK components will be installed automatically by Android Studio on first launch,
+but you can also install them manually through the **SDK Manager**:
 
-- **Android SDK Platform 37** (to compile)
+- **Android SDK Platform 36** (to compile)
 - **Android SDK Build-Tools**
 - **Android Emulator**
 - **Android SDK Platform-Tools**

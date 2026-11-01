@@ -1,8 +1,11 @@
 [versions]
 kotlin = "2.4.21"
-agp = "9.5.0"
+# AGP is pinned to the newest version the project's Android Studio supports (9.1.0). It was tested up to
+# compileSdk 36.1, so the Compose BOM below is pinned to a release that compiles against API 36 (the newer
+# BOMs, 2026.08.00 and later, need API 37). Raise these together when Android Studio is updated.
+agp = "9.1.0"
 composeDesktop = "1.12.2"
-composeBom = "2026.09.00"
+composeBom = "2026.06.01"
 activityCompose = "1.13.0"
 ktor = "3.6.1"
 kotlinxSerialization = "1.12.0"
