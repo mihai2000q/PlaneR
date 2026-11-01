@@ -26,7 +26,7 @@ It is not a runnable application — it exists to be consumed by the [Server](..
 
 The goal is a single source of truth for what an `Event`, a `Task`, or a `RecurrenceRule` looks like, so that changes to the contract only need to be made once.
 
-Shared contains **no UI**. Desktop and Android are native applications that each own their screens and view models.
+Shared contains **no UI**. Desktop and Android are separate applications that each own their screens and view models.
 
 ## Prerequisites
 

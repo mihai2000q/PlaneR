@@ -215,7 +215,7 @@ Response headers:
 - `X-Content-Type-Options: nosniff` — set by the server on every response
 - `Cache-Control: no-store` — set by the server on every authentication response, so tokens are never cached
 
-PlaneR's API returns only JSON to native clients, so browser-oriented headers such as `X-Frame-Options` and CORS are not needed.
+PlaneR's API returns only JSON to its own app clients (there is no browser client), so browser-oriented headers such as `X-Frame-Options` and CORS are not needed.
 
 ## Input Validation
 

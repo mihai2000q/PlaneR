@@ -20,7 +20,7 @@
 
 This is the desktop client of **PlaneR**, written in Kotlin using **Compose for Desktop**. It targets Windows, macOS, and Linux via the JVM.
 
-This is a native client: it owns its entire UI — screens, components, navigation, and view models. It consumes the models, DTOs, validation rules, and networking client from [`planer-shared`](../planer-shared/README.md), which contains no UI. The Android client has its own, separate UI.
+This is a standalone client: it owns its entire UI — screens, components, navigation, and view models. It runs on the JVM, and Compose for Desktop renders the UI itself (it does not use the operating system's native widgets), so it looks the same on Windows, macOS, and Linux. It consumes the models, DTOs, validation rules, and networking client from [`planer-shared`](../planer-shared/README.md), which contains no UI. The Android client has its own, separate UI.
 
 ## Prerequisites
 
@@ -107,7 +107,7 @@ To build an executable JAR that can be run on any platform with a JVM installed:
 
 ## Architecture
 
-The desktop module is a complete native client. It uses the **shared** module for the contract with the server and provides everything the user sees.
+The desktop module is a complete, standalone client. It uses the **shared** module for the contract with the server and provides everything the user sees.
 
 The main responsibilities of this module are:
 

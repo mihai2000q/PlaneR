@@ -20,13 +20,13 @@ documented as they are settled.
 PlaneR is a personal time-planning application. It follows a **client–server** model:
 
 - A **Ktor server** owns the data and the business rules.
-- **Desktop** and **Android** clients are native applications. Each renders its own UI and talks to the server over HTTP.
+- **Desktop** and **Android** clients are separate applications. Each renders its own UI and talks to the server over HTTP.
 - A **shared** module holds the non-visual code that both clients (and, partly, the server) can reuse: domain models, DTOs, validation, and the networking client.
 
 The system has three properties that drive most of the architecture:
 
 1. **Single-user.** No sharing, no collaboration, no multi-tenancy. This removes a large class of problems (permission matrices, real-time sync between users, conflict resolution across users).
-2. **Native clients, shared contract.** Desktop (Windows, macOS, Linux via JVM) and Android each have their own UI, written against their platform's toolkit. What they share is the *contract* with the server — the models, DTOs, validation, and API client — so the two clients cannot drift apart on what an `Event` is. iOS is planned as a future native sibling client.
+2. **Separate clients, shared contract.** Desktop (Windows, macOS, Linux via the JVM) and Android each have their own UI, written against their platform's toolkit. Android is a native app; the desktop client uses Compose for Desktop, which runs on the JVM and draws its own UI rather than using the operating system's widgets. What the clients share is the *contract* with the server — the models, DTOs, validation, and API client — so they cannot drift apart on what an `Event` is. iOS is planned as a future native sibling client.
 3. **Calendar-shaped.** Most operations are reads over a date range and simple writes of individual items. This favours a straightforward request–response API over anything more elaborate.
 
 ## Modules

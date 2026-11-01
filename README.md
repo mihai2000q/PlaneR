@@ -25,7 +25,7 @@
 
 ## Abstract
 
-**PlaneR** is a time planning application written in Kotlin. It is designed to help users organize their schedules, create events, set reminders, and manage their time more effectively. The clients are **native applications**: each one has its own UI written against its platform's toolkit, while the non-visual code is shared through a **Kotlin Multiplatform (KMP)** library.
+**PlaneR** is a time planning application written in Kotlin. It is designed to help users organize their schedules, create events, set reminders, and manage their time more effectively. The clients are **separate applications**: each one has its own UI written against its platform's toolkit, while the non-visual code is shared through a **Kotlin Multiplatform (KMP)** library. Android is a native Android app; the desktop app runs on the JVM, and **Compose for Desktop** draws its own UI instead of using the operating system's widgets, so it is cross-platform rather than native.
 
 The project is divided into four modules:
 

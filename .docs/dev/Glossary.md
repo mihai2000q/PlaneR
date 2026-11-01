@@ -92,8 +92,8 @@ Android's declarative UI toolkit. Used by the Android client.
 **Compose for Desktop**
 The JVM desktop flavour of Compose. Used by the Desktop client. It uses the same toolkit family as Android, but the two clients share no UI code.
 
-**Native client**
-A client whose UI is written specifically for its platform. PlaneR's Desktop and Android clients are native in this sense; each owns its screens, navigation, and view models.
+**Client**
+One of PlaneR's apps: Desktop, Android, and later iOS. Each owns its screens, navigation, and view models; none shares UI code with another. Android (and a future iOS client) are native apps. Desktop runs on the JVM with Compose for Desktop, which draws its own UI rather than using the operating system's widgets, so it is cross-platform, not native.
 
 **Shared**
 The shared library module (`planer-shared`). Contains domain models, DTOs, validation, and the networking client. Has no UI. The clients depend on all of it; the server depends only on the models, DTOs, and validation.
