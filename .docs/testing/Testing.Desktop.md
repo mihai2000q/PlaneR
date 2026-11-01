@@ -28,15 +28,11 @@ To run the desktop UI tests:
 ./gradlew :planer-desktop:uiTest
 ```
 
-The tests run in a **headless JVM** by default. They launch the Compose application, connect it to the running server, and drive it through the UI.
+The tests render the Compose UI off-screen, so no window appears. They connect the application to the running server and drive it through the UI.
 
-To run them with a visible window (useful for debugging):
+The server must be running, and the sample data loaded (see [Sample Data](../dev/Sample-Data.md)), because the tests sign in as a seeded user. The application's server URL for tests is set in the test configuration and defaults to `http://localhost:8080`.
 
-```sh
-./gradlew :planer-desktop:uiTest -Dcompose.ui.test.headless=false
-```
-
-This is particularly helpful when a test fails and you need to see what the UI actually looked like at the moment of failure.
+When a test fails and you need to see what the UI looked like, reproduce the steps by hand with `./gradlew :planer-desktop:run` against the same server, or capture a screenshot from the test with `captureToImage()` on the failing node.
 
 ## Conventions
 
@@ -80,20 +76,22 @@ class AuthScreenTest {
 
 ### Custom Matchers
 
-Custom matchers live in `planer-core/src/commonTest/kotlin/matchers`. They are shared with the Android tests, so anything added here is available on both platforms.
+Custom matchers live in `planer-desktop/src/test/kotlin/matchers`. They are specific to the desktop module; the Android module keeps its own.
 
-Example:
+The example below is illustrative: `IsOverdue` is a custom semantics property that the app would have to define and set on the composable.
 
 ```kotlin
+val IsOverdueKey = SemanticsPropertyKey<Boolean>("IsOverdue")
+
 fun SemanticsNodeInteraction.assertIsOverdue(): SemanticsNodeInteraction {
-    assert(SemanticsMatcher.expectValue(SemanticsProperties.IsOverdue, true))
+    assert(SemanticsMatcher.expectValue(IsOverdueKey, true))
     return this
 }
 ```
 
 ### Utils
 
-A helper to build a signed test token is provided in `planer-core/src/commonTest/kotlin/utils/TestTokens.kt`. Use it with `AppHttpClient.withToken(...)` when a test needs to act as a specific user without going through the login UI.
+Tests sign in as a seeded user by calling `ApiClient.login(...)` in test setup with the credentials from the sample data, then start the app already authenticated. Do not mint tokens by hand: that would require the server's signing key in the test code. (The in-process `X-Test-User-Id` shortcut described in [Testing — Server](Testing.Server.md#test-auth-handler) exists only in the server's own integration tests, not against a real running server.)
 
 ### Test Tags
 
@@ -109,4 +107,4 @@ Then select it in the test:
 rule.onNodeWithTag("event-card-22222222-...").assertIsDisplayed()
 ```
 
-Tags are stable identifiers that survive copy changes and layout refactors, and they are shared with the Android tests.
+Tags are stable identifiers that survive copy changes and layout refactors. Keep tag names in a single `TestTags` object in the desktop module. The Android client defines its own; by convention the two use the same naming pattern (`event-card-<id>`) so that tests read alike, but nothing enforces it.

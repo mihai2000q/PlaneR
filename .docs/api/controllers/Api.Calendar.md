@@ -4,11 +4,13 @@
 - [Get](#get)
 - [Create](#create)
 - [Update](#update)
+- [Set Default](#set-default)
 - [Reorder](#reorder)
 - [Delete](#delete)
 
 A Calendar is a coloured grouping for events and tasks.
-Every user has exactly one default calendar, created on registration.
+Every user has exactly one default calendar, created on registration. The default
+calendar cannot be deleted; to get rid of it, make another calendar the default first.
 
 ---
 
@@ -95,7 +97,7 @@ POST {{host}}/api/calendars
 
 | Field | Required | Notes |
 |---|---|---|
-| `name` | yes | 1–40 chars, unique per user |
+| `name` | yes | 1–40 chars, trimmed, unique per user (case-insensitive: "work" and "Work" collide) |
 | `color` | yes | Hex string matching `^#[0-9A-Fa-f]{6}$` |
 | `icon` | yes | Value from `CalendarIcon` enum |
 
@@ -114,7 +116,7 @@ The created calendar, same shape as **Get**.
 ## Update
 
 ```js
-PUT {{host}}/api/calendars/{id}
+PATCH {{host}}/api/calendars/{id}
 ```
 
 **Request**
@@ -128,6 +130,25 @@ PUT {{host}}/api/calendars/{id}
 ```
 
 All fields are optional; only provided fields are updated.
+
+**Response**
+
+The updated calendar, same shape as **Get**.
+
+**Errors**
+
+- `409 CONFLICT` if the new `name` collides with another calendar of this user
+
+---
+
+## Set Default
+
+Makes this calendar the user's default. The previous default stops being the
+default in the same operation, so there is always exactly one.
+
+```js
+PUT {{host}}/api/calendars/{id}/default
+```
 
 **Response**
 
@@ -192,5 +213,5 @@ DELETE {{host}}/api/calendars/{id}
 
 **Errors**
 
-- `400 Validation Error` if the user tries to delete the default calendar
-- `400 Validation Error` if `mode=reassign` and `targetCalendarId` is missing or invalid
+- `400 VALIDATION_ERROR` if the user tries to delete the default calendar (set another one as default first)
+- `400 VALIDATION_ERROR` if `mode=reassign` and `targetCalendarId` is missing or invalid

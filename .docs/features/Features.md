@@ -6,6 +6,7 @@ know what is real and what is an aspiration.
 
 - [Implemented](#implemented)
 - [Planned](#planned)
+  - [Routine Start Reminder](#routine-start-reminder)
 - [Deferred](#deferred)
 - [Explicitly Out of Scope](#explicitly-out-of-scope)
 
@@ -25,8 +26,9 @@ shaped to support them.
 - **Login** with JWT access and refresh tokens
 - **Email verification** before sensitive actions are allowed
 - **Password reset** via email link
-- **Change email** with re-verification of the new address
+- **Change email** with re-verification of the new address, a notice to the old address, and the option to cancel or resend
 - **Change password** with sign-out of all other sessions
+- **Sessions that renew themselves** — short-lived access tokens plus rotating refresh tokens, with theft detection
 - **Account deletion** with cascading removal of all owned data
 
 ### Calendars
@@ -34,6 +36,7 @@ shaped to support them.
 - **Multiple calendars** per user, each with a name, color, and icon
 - **Default calendar** created on registration
 - **Reorder** calendars in the sidebar
+- **Change the default** calendar
 - **Delete** a calendar with options for its contents (unassign, reassign, cascade)
 
 ### Events
@@ -42,7 +45,9 @@ shaped to support them.
 - **All-day events** rendered as banners instead of time blocks
 - **Recurring events** with daily, weekly, monthly, and yearly frequencies
 - **Occurrence overrides** for editing a single instance of a recurring event
+- **"This and following"** edits that split a series
 - **Skip occurrences** without breaking the series
+- **Per-event timezone**, so recurring events stay at the same local time across daylight-saving changes and don't move when the user changes timezone
 - **Routines** — an ordered list of preparation steps performed before the event starts, used for reverse planning. The server computes when each step begins so the user knows when to start getting ready.
 
 ### Tasks
@@ -69,6 +74,8 @@ shaped to support them.
 
 ### Derived
 
+Served by the server through [Api.Summary](../api/controllers/Api.Summary.md) (and, for counts, the calendar list):
+
 - **Streak** — consecutive days with at least one completed task
 - **Focus Now** — the next upcoming event or scheduled task
 - **Routine Start** — when to begin preparing for the next event
@@ -76,19 +83,20 @@ shaped to support them.
 - **Today's progress** — completed vs. total for the day
 - **Calendar counts** — how many items per calendar
 
+### Routine Start Reminder
+
+A local notification on the client at an event's `routineStartAt` ("Time to start getting ready for *Meet friends*"). It is scheduled **on the device** from data the client already has, so it needs no server push, no `Reminder` model, and no scheduler on the server. It is what makes routines useful when the app is closed, and it is deliberately the *only* notification in v1; general reminders remain [deferred](#deferred).
+
 ### Cross-platform
 
-- **Desktop** client for Windows, macOS, and Linux
-- **Android** client for Android
-- **Shared UI** between both platforms via Compose Multiplatform
-
-## Planned
-
-Features that are designed but not yet built, beyond the ones already listed above.
+- **Desktop** client for Windows, macOS, and Linux (Compose for Desktop)
+- **Android** client for Android (Jetpack Compose)
+- **Shared contract** — both clients use the same models, DTOs, validation, and API client from `planer-core`
+- **Forced update** — the server can require a minimum client version; older clients are asked to update
 
 ### Search
 
-A global search across events and tasks. Implementation is still undecided — see [Architecture → Open Questions](../architecture/Architecture.md#open-questions).
+A global search across events and tasks. The API is only a sketch and the implementation is still undecided — see [Api.Search](../api/controllers/Api.Search.md) and [Architecture → Open Questions](../architecture/Architecture.md#open-questions).
 
 ## Deferred
 
@@ -96,11 +104,11 @@ Features that have been considered and intentionally postponed.
 They may return in a future version.
 
 - **Routine templates** — reusable preparation routines that can be applied to an event with one click. In v1 the routine lives directly on the event; templates would let the user save and reuse a common sequence (e.g., "Going out").
-- **Reminders and notifications** — would require a `Reminder` model, a scheduler, and platform-specific notification code. A routine's first step is a natural trigger point.
+- **General reminders and notifications** — would require a `Reminder` model, a scheduler, and platform-specific notification code. (The [routine start reminder](#routine-start-reminder) is the one exception, done locally on the device.)
 - **Attachments** — would require a storage layer for files and images
 - **Daily check-in** — the "Energy Level Today" widget from early mockups
 - **Offline mode** — a local cache so the app works without a network connection
-- **iOS support** — the Compose Multiplatform iOS target
+- **iOS support** — a native SwiftUI client consuming `planer-core`
 - **Export / import** — iCal or CSV interchange with other calendar apps
 
 ## Explicitly Out of Scope

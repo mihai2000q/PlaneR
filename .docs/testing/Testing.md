@@ -8,7 +8,7 @@ PlaneR is tested at three levels, and each level has its own document:
 | **Integration** | The server through its HTTP layer, against a real Postgres | [Server](Testing.Server.md#integration-testing) |
 | **End-to-End** | Real clients, driven through their UI, against a real server | [Desktop](Testing.Desktop.md), [Android](Testing.Android.md) |
 
-Tests are written in **Kotlin** and run through **JUnit 5** with **Kotlin Test** for assertions. Compose UI tests use **Compose UI Testing**, which works identically across Compose for Desktop and Jetpack Compose.
+Tests are written in **Kotlin** and run through **JUnit 5** with **Kotest assertions** (`shouldBe`, `shouldNotBeNull`, …). Compose UI tests use **Compose UI Testing**, whose test rules are JUnit 4 (`@get:Rule`); the two client modules therefore also depend on JUnit 4 for their UI tests. The Compose UI Testing API is the same on Compose for Desktop and Jetpack Compose, but each client has its own test code — there is no shared UI to test in common.
 
 - [Conventions](#conventions)
   - [Naming](#naming)
@@ -66,7 +66,8 @@ The `Arrange / Act / Assert` pattern makes the intent of a test obvious at a gla
 ### Fixtures and Fakes
 
 - **No mocking frameworks.** Hand-written fakes are simpler to read and debug. A `FakePasswordHasher`, `InMemoryUserRepository`, or `StubClock` is a five-line class.
-- **Shared fixtures live in `commonTest`** so they can be reused by any test in the module. Test fixtures do not live in `commonMain` — production code should not depend on test code.
+- **Fixtures live in the test source set of the module that uses them** (`commonTest` in `planer-core`, `test` in the server and clients). Test fixtures do not live in main source sets — production code should not depend on test code.
+- **Test source sets are not visible to other modules.** If two modules genuinely need the same fixtures, expose them through a Gradle test-fixtures source set or a small dedicated testing module. Do not copy them, and do not assume `commonTest` of `planer-core` is reachable from the clients.
 - **Each test is independent.** A test must not rely on state left behind by another. Database state is reset between methods; in-memory state is recreated in the test class constructor.
 
 ## Where to Go Next

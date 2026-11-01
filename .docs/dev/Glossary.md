@@ -36,7 +36,7 @@ A value object that describes how an event or task repeats (daily, weekly, month
 A value object describing when a recurring series stops. One of: never, on a specific date, or after N occurrences.
 
 **CalendarIcon**
-An enum of icon identifiers for calendars (`BRIEFCASE`, `HEART`, `FITNESS`, …). Mapped to Material Icons on the client.
+An enum of icon identifiers for calendars (`BRIEFCASE`, `HEALTH`, `FITNESS`, …). Mapped to Material Icons on the client.
 
 **Unassigned**
 An event or task whose `calendarId` is null. It exists but is not grouped under any calendar.
@@ -44,7 +44,7 @@ An event or task whose `calendarId` is null. It exists but is not grouped under 
 ## Time and Views
 
 **Timezone**
-The `User.timezone` field, an IANA identifier (e.g., `Europe/Berlin`). It is authoritative for computing "today", "this week", and recurrence occurrences. The server never assumes a timezone.
+Two related things. `User.timezone` (an IANA identifier such as `Europe/Berlin`) is authoritative for "today", "this week", and date-range filters, and is the default for new items. Each event and task also has its own `timeZone`, which anchors recurrence and all-day boundaries so that existing items don't move when the user's timezone changes. The server never assumes a timezone. See [Domain → Timezones](Domain.md#timezones).
 
 **Today**
 The current date in the user's timezone.
@@ -84,22 +84,37 @@ The number of events and tasks assigned to a calendar. Powers the small number b
 ## Technical
 
 **KMP**
-Kotlin Multiplatform. The mechanism that lets the same Kotlin code compile to JVM, Android, and iOS targets. The **Core** module is a KMP module.
+Kotlin Multiplatform. The mechanism that lets the same Kotlin code compile to JVM, Android, and iOS targets. The **Core** module is the only KMP module.
 
-**Compose Multiplatform**
-The umbrella framework that provides a shared declarative UI across platforms. On Android it uses **Jetpack Compose**; on Desktop it uses **Compose for Desktop**.
+**Jetpack Compose**
+Android's declarative UI toolkit. Used by the Android client.
+
+**Compose for Desktop**
+The JVM desktop flavour of Compose. Used by the Desktop client. It uses the same toolkit family as Android, but the two clients share no UI code.
+
+**Native client**
+A client whose UI is written specifically for its platform. PlaneR's Desktop and Android clients are native in this sense; each owns its screens, navigation, and view models.
 
 **Core**
-The shared library module (`planer-core`). Contains domain models, DTOs, validation, networking, and shared UI. Every other module depends on it.
+The shared library module (`planer-core`). Contains domain models, DTOs, validation, and the networking client. Has no UI. The clients depend on all of it; the server depends only on the models, DTOs, and validation.
+
+**Forced Update**
+The mechanism by which the server refuses requests from client versions below a configured minimum, answering `426 Upgrade Required`. Clients announce their version with the `X-Client-Version` and `X-Client-Platform` headers.
+
+**ApiError**
+The typed failure value that `ApiClient` returns for every non-2xx response. See [Error Handling](../architecture/Error-Handling.md).
 
 **Server**
 The Ktor HTTP server module (`planer-server`). Owns persistence and business logic.
 
 **JWT**
-JSON Web Token. The authentication mechanism. Contains a `sub` claim with the user ID and is signed with HS256.
+JSON Web Token. The format of the 15-minute access token. Contains a `sub` claim with the user ID and is signed with HS256.
 
 **Refresh Token**
-A long-lived token used to obtain new access tokens without re-login. Stored in the database so it can be revoked.
+A long-lived (60-day), opaque, rotating token used to obtain new access tokens without re-login. Stored hashed in the database so it can be revoked.
+
+**One-Time Token**
+An opaque, single-use, hashed-at-rest token used for email verification and password reset. Not a JWT.
 
 **RRULE**
 The iCalendar standard notation for recurrence rules. PlaneR's `RecurrenceRule` is loosely modelled after it but does not use the string syntax.
@@ -111,7 +126,7 @@ The database migration tool. Applies versioned SQL files at startup.
 The Kotlin HTTP framework used for both the server and the client networking layer.
 
 **Exposed**
-A Kotlin SQL framework. Under consideration as the persistence layer, not yet decided.
+JetBrains' Kotlin SQL framework. The persistence layer of the server.
 
 **DTO**
 Data Transfer Object. The shape of a request or response body, distinct from the domain model.

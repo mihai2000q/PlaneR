@@ -19,11 +19,11 @@
 
 ## Abstract
 
-This is the Android client of **PlaneR**, written in Kotlin using **Jetpack Compose** (part of the **Compose Multiplatform** umbrella).
+This is the Android client of **PlaneR**, written in Kotlin using **Jetpack Compose**.
 
-The module consumes shared business logic and UI code from [`planer-core`](../planer-core/README.md), so most of the screens and components live there. This module is primarily responsible for the Android entry point, platform-specific configuration, and packaging.
+This is a native client: it owns its entire UI — screens, components, navigation, and view models. It consumes the models, DTOs, validation rules, and networking client from [`planer-core`](../planer-core/README.md), which contains no UI. The desktop client has its own, separate UI.
 
-iOS is planned as a future sibling module (`planer-ios`) that will also depend on `planer-core`. Adding it will not change this module.
+iOS is planned as a future sibling module (`planer-ios`) that will also depend on `planer-core`, with a native UI of its own. Adding it will not change this module.
 
 ## Prerequisites
 
@@ -128,16 +128,19 @@ The resulting AAB will be located in `planer-android/build/outputs/bundle/releas
 
 ## Architecture
 
-The Android module is intentionally thin: it acts as an entry point that wires up the shared **core** module with Android-specific configuration.
+The Android module is a complete native client. It uses the **core** module for the contract with the server and provides everything the user sees.
 
 The main responsibilities of this module are:
 
 - **Application entry point** — the `MainActivity` that launches the Compose application
+- **UI** — screens, components, navigation, and view models
 - **Platform integrations** — Android-only features such as notifications, permissions, and background work
+- **Token storage** — the Android Keystore–backed implementation of `TokenStorage`
+- **Forced-update screen** — shown when `ApiClient` signals `UPGRADE_REQUIRED`
 - **Android manifest** — declared permissions, activities, and services
 - **Packaging** — Gradle configuration for building APK and AAB artifacts
 
-All UI code, screens, view models, and business logic live in [`planer-core`](../planer-core/README.md) so they can be shared with the [desktop](../planer-desktop/README.md) application. If you need to add a new screen or component, it should almost always go into `planer-core`, not here.
+Business rules do not live here: recurrence, routine layout, and ownership are the server's job, and validation rules come from [`planer-core`](../planer-core/README.md). Screens are **not** shared with the [desktop](../planer-desktop/README.md) application; a screen that exists on both is implemented on both.
 
 For more details, check out the [Architecture documentation](../.docs/architecture/Architecture.md).
 
@@ -145,7 +148,7 @@ For more details, check out the [Architecture documentation](../.docs/architectu
 
 ### Unit Testing
 
-Unit tests for shared components live in `planer-core`. This module only contains tests for Android-specific behaviour.
+Unit tests for the shared contract live in `planer-core`. This module contains tests for the Android UI and view models.
 
 To run the tests for the Android module specifically:
 
@@ -159,7 +162,7 @@ To run all tests across the project:
 ./gradlew test
 ```
 
-The framework is **Kotlin Test** with **JUnit 5**, alongside **Compose UI Testing** for rendering shared components in isolation.
+The framework is **Kotlin Test** with **JUnit 5**, alongside **Compose UI Testing** (which uses JUnit 4 rules) for rendering composables in isolation.
 
 ### Instrumented Testing
 
@@ -171,7 +174,7 @@ The instrumented tests reside in `src/androidTest`. To run them, you need a conn
 ./gradlew :planer-android:connectedAndroidTest
 ```
 
-For the full end-to-end test strategy, including how to run the tests against a live server, see [Testing — Android](../.docs/testing/Testing-Android.md).
+For the full end-to-end test strategy, including how to run the tests against a live server, see [Testing — Android](../.docs/testing/Testing.Android.md).
 
 ## Live Reload
 
@@ -180,7 +183,7 @@ To use live reload while developing the Android application, you can take advant
 Once you have the app running on a device or emulator:
 
 1. Enable **Live Edit** by going to **Settings → Editor → Live Edit** and checking **Enable Live Edit**
-2. Make a change to any composable in `planer-core`
+2. Make a change to any composable in this module
 3. The running app will update automatically without a full rebuild
 
 For a more traditional continuous build experience, you can use the Gradle continuous build mode from the command line:

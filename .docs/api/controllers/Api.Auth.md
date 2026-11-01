@@ -10,14 +10,16 @@
 - [Reset Password](#reset-password)
 
 Handles registration, login, token lifecycle, email verification, and password recovery.
-None of these endpoints require an existing access token.
+None of these endpoints require an existing access token. Access tokens last **15 minutes** and refresh tokens **60 days**, rotating on every use; see [Security](../../security/Security.md#authentication) for the full model.
+
+All failures use the shared error body with the codes from [Api](../Api.md#error-format).
 
 ---
 
 ## Register
 
 Creates a new user account.
-A **default Calendar** named "Personal" is created automatically.
+A single **default Calendar** named "Personal" is created automatically; the other palette entries in [Domain](../../domain/Domain.md#calendar) are only presets the client offers when the user creates calendars.
 A verification email is sent to the provided address.
 
 On success, an access token and a refresh token are returned.
@@ -42,7 +44,7 @@ POST {{host}}/api/auth/register
 | Field | Required | Notes |
 |---|---|---|
 | `email` | yes | Valid email, unique |
-| `password` | yes | Min 8 chars, at least 1 letter and 1 digit |
+| `password` | yes | 8–72 bytes (UTF-8), not in the common-password list. No composition rules — see [Password Policy](../../security/Security.md#password-policy) |
 | `displayName` | yes | 1–60 chars |
 | `timezone` | yes | Valid IANA identifier |
 
@@ -60,14 +62,18 @@ POST {{host}}/api/auth/register
     "createdAt": "2025-07-15T12:00:00Z"
   },
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "9b1c7e2f-...",
-  "expiresAt": "2025-07-22T12:00:00Z"
+  "refreshToken": "q3Zr8v0hN1m...",
+  "expiresAt": "2025-07-15T12:15:00Z"
 }
 ```
 
+`expiresAt` is when the **access token** expires. The refresh token is an opaque
+string; its expiry is managed by the server and is not part of the response.
+
 **Errors**
 
-- `409 Conflict` if the email is already registered
+- `400 VALIDATION_ERROR` if a field is invalid
+- `409 CONFLICT` if the email is already registered. This reveals that the address has an account; see [Login and Enumeration](../../security/Security.md#login-and-enumeration).
 
 ---
 
@@ -94,7 +100,7 @@ Same shape as **Register**.
 
 **Errors**
 
-- `401 Unauthorized` if the credentials are invalid
+- `401 INVALID_CREDENTIALS` if the credentials are invalid
 
 ---
 
@@ -110,7 +116,7 @@ POST {{host}}/api/auth/refresh
 
 ```json
 {
-  "refreshToken": "9b1c7e2f-..."
+  "refreshToken": "q3Zr8v0hN1m..."
 }
 ```
 
@@ -119,21 +125,28 @@ POST {{host}}/api/auth/refresh
 ```json
 {
   "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-  "refreshToken": "d4f0a8c3-...",
-  "expiresAt": "2025-07-22T12:00:00Z"
+  "refreshToken": "d4f0a8c3Kx9...",
+  "expiresAt": "2025-07-15T12:30:00Z"
 }
 ```
 
+The old refresh token stops working immediately. Presenting an already-used
+refresh token is treated as theft and revokes the whole session family — see
+[Refresh Tokens](../../security/Security.md#refresh-tokens).
+
 **Errors**
 
-- `401 Unauthorized` if the refresh token is invalid, expired, or has been revoked
+- `401 UNAUTHORIZED` if the refresh token is invalid, expired, or has been revoked
 
 ---
 
 ## Logout
 
-Revokes the current refresh token.
-The access token remains valid until it expires, but the client should discard it.
+Revokes the session the refresh token belongs to.
+The access token remains valid until it expires (at most 15 minutes), but the client should discard it.
+
+This endpoint is anonymous: it is authorised by the refresh token in the body, so
+a client whose access token has already expired can still log out.
 
 ```js
 POST {{host}}/api/auth/logout
@@ -143,9 +156,12 @@ POST {{host}}/api/auth/logout
 
 ```json
 {
-  "refreshToken": "d4f0a8c3-..."
+  "refreshToken": "d4f0a8c3Kx9..."
 }
 ```
+
+An unknown or already-revoked token is not an error — the response is the same, so
+logging out twice is harmless.
 
 **Response**
 
@@ -170,12 +186,12 @@ POST {{host}}/api/auth/verify-email
 
 ```json
 {
-  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+  "token": "Zm9vYmFyYmF6cXV4..."
 }
 ```
 
-The token is delivered via the verification email as a link. The client extracts
-it from the URL and posts it here.
+The token is an opaque one-time token (valid 24 hours) delivered via the
+verification email as a link. The client extracts it from the URL and posts it here.
 
 **Response**
 
@@ -188,15 +204,18 @@ it from the URL and posts it here.
 
 **Errors**
 
-- `400 Validation Error` if the token is malformed
-- `401 Unauthorized` if the token is expired or already used
+- `400 TOKEN_INVALID` if the token is malformed or already used
+- `400 TOKEN_EXPIRED` if the token has expired
 
 ---
 
 ## Resend Verification
 
-Sends a new verification email to the currently registered address.
-Rate-limited to one send per minute per account.
+Sends a new verification email to the registered address of an unverified account.
+Rate-limited to one send per minute per email address (and per IP).
+
+This only concerns the account's primary email. To resend the link for a pending
+email *change*, use [Resend Email Change](Api.User.md#resend-email-change).
 
 ```js
 POST {{host}}/api/auth/resend-verification
@@ -253,8 +272,9 @@ Same neutrality rule as **Resend Verification**.
 
 ## Reset Password
 
-Consumes the password reset token and sets a new password.
-All existing refresh tokens are revoked as a precaution.
+Consumes the password reset token (valid 1 hour) and sets a new password.
+All existing refresh tokens are revoked as a precaution. The new password must meet
+the same [policy](../../security/Security.md#password-policy) as registration.
 
 ```js
 POST {{host}}/api/auth/reset-password
@@ -264,7 +284,7 @@ POST {{host}}/api/auth/reset-password
 
 ```json
 {
-  "token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
+  "token": "Zm9vYmFyYmF6cXV4...",
   "newPassword": "EvenBetterPassword456!"
 }
 ```
@@ -279,5 +299,6 @@ POST {{host}}/api/auth/reset-password
 
 **Errors**
 
-- `400 Validation Error` if `newPassword` does not meet the strength requirements
-- `401 Unauthorized` if the token is expired or already used
+- `400 VALIDATION_ERROR` if `newPassword` does not meet the strength requirements
+- `400 TOKEN_INVALID` if the token is malformed or already used
+- `400 TOKEN_EXPIRED` if the token has expired

@@ -149,6 +149,14 @@ v<major>.<minor>.<patch>
 - **minor** — new features that are backward compatible
 - **patch** — bug fixes and small improvements
 
-A release is created when a `develop` → `master` PR is merged. The tag is created on the merge commit, and a GitHub Release is published with a short summary of what changed.
+A release is created when a `develop` → `master` PR is merged. The tag is created on the merge commit, and a GitHub Release is published with a short summary of what changed. Pushing the tag starts the server, desktop, and Android release workflows (see [Deployment → Releases](../infrastructure/Deployment.md#releases)).
 
-The version number is stored in the root `build.gradle.kts` and is the single source of truth for both the server and the clients.
+The version number is stored in the root `build.gradle.kts` and is the single source of truth for both the server and the clients. It is also the value clients send in `X-Client-Version`.
+
+**Release checklist for a *major* release** (a breaking change to the API or domain):
+
+1. Merge and tag; let the workflows run.
+2. Wait until the new clients are available to users.
+3. Raise the server's `MIN_CLIENT_VERSION_*` to the new version.
+
+This is the only step that can lock users out, so it is never combined with step 1.

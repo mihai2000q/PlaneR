@@ -20,12 +20,13 @@ Each document is standalone, but they cross-reference each other freely.
 
 ### Api
 
-- [Api](api/Api.md) — conventions, authentication, authorization, error format, pagination
+- [Api](api/Api.md) — conventions, health, forced updates, authentication, authorization, error format, pagination
 - [Api.Auth](api/controllers/Api.Auth.md) — register, login, refresh, logout, email verification, password reset
 - [Api.User](api/controllers/Api.User.md) — current user profile and account
 - [Api.Calendar](api/controllers/Api.Calendar.md) — calendar groupings
 - [Api.Event](api/controllers/Api.Event.md) — time-bound occurrences
 - [Api.Task](api/controllers/Api.Task.md) — to-do items
+- [Api.Summary](api/controllers/Api.Summary.md) — derived home-screen values: streak, focus now, progress, overdue
 - [Api.Search](api/controllers/Api.Search.md) — global search across events and tasks *(sketch — not final)*
 
 ### Architecture
@@ -41,7 +42,7 @@ Each document is standalone, but they cross-reference each other freely.
 
 ### Domain
 
-- [Domain](domain/Domain.md) — domain models, value objects, enums, task/event conversion, recurrence
+- [Domain](domain/Domain.md) — domain models, timezones, task/event conversion, recurrence, preparation steps, supporting records, enums
 
 ### Features
 
@@ -49,12 +50,12 @@ Each document is standalone, but they cross-reference each other freely.
 
 ### Infrastructure
 
-- [Database](infrastructure/Database.md) — schema, naming conventions, migrations (Flyway)
-- [Deployment](infrastructure/Deployment.md) — environments, CI/CD pipelines, TLS, backups, secrets
+- [Database](infrastructure/Database.md) — naming conventions, schema, indexes, migrations (Flyway), data access (Exposed)
+- [Deployment](infrastructure/Deployment.md) — environments, CI, releases, server/desktop/Android pipelines, TLS, backups, secrets
 
 ### Security
 
-- [Security](security/Security.md) — access control, password storage, JWT, transport security, rate limiting
+- [Security](security/Security.md) — access control, passwords, access/refresh/one-time tokens, transport security, rate limiting
 
 ### Testing
 

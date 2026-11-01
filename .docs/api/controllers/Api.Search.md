@@ -70,4 +70,4 @@ GET {{host}}/api/search?q=standup&type=all&from=2025-07-01&to=2025-12-31&page=0&
 
 **Errors**
 
-- `400 Validation Error` if `q` is missing or shorter than 2 characters
+- `400 VALIDATION_ERROR` if `q` is missing or shorter than 2 characters

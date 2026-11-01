@@ -84,11 +84,11 @@ The only difference from the desktop test is the rule: `createAndroidComposeRule
 
 ### Custom Matchers
 
-Custom matchers live in `planer-core/src/commonTest/kotlin/matchers`, shared with the desktop tests. Anything added there is available on both platforms.
+Custom matchers live in `planer-android/src/androidTest/kotlin/matchers`. They are specific to the Android module; the desktop module keeps its own.
 
 ### Utils
 
-A helper to build a signed test token is provided in `planer-core/src/commonTest/kotlin/utils/TestTokens.kt`. Use it with `AppHttpClient.withToken(...)` when a test needs to act as a specific user without going through the login UI.
+Tests sign in as a seeded user by calling `ApiClient.login(...)` in test setup with the credentials from the sample data (see [Sample Data](../dev/Sample-Data.md)), then start the app already authenticated. Do not mint tokens by hand: that would require the server's signing key in the test code. The application under test reaches the host machine's server at `http://10.0.2.2:8080`, which needs cleartext HTTP allowed in the debug build's network security config.
 
 ### Test Tags
 
@@ -104,7 +104,7 @@ Then select it in the test:
 rule.onNodeWithTag("event-card-22222222-...").assertIsDisplayed()
 ```
 
-Tags are stable identifiers that survive copy changes and layout refactors, and they are shared with the desktop tests.
+Tags are stable identifiers that survive copy changes and layout refactors. Keep tag names in a single `TestTags` object in the Android module. The desktop client defines its own; by convention the two use the same naming pattern (`event-card-<id>`), but nothing enforces it.
 
 ### Emulator Slowdowns
 

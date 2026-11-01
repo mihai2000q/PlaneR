@@ -20,86 +20,97 @@ documented as they are settled.
 PlaneR is a personal time-planning application. It follows a **client–server** model:
 
 - A **Ktor server** owns the data and the business rules.
-- **Desktop** and **Android** clients render the UI and talk to the server over HTTP.
-- A shared **core** module holds everything that can be reused by both clients: domain models, DTOs, validation, and UI components.
+- **Desktop** and **Android** clients are native applications. Each renders its own UI and talks to the server over HTTP.
+- A shared **core** module holds the non-visual code that both clients (and, partly, the server) can reuse: domain models, DTOs, validation, and the networking client.
 
 The system has three properties that drive most of the architecture:
 
 1. **Single-user.** No sharing, no collaboration, no multi-tenancy. This removes a large class of problems (permission matrices, real-time sync between users, conflict resolution across users).
-2. **Multi-platform.** Desktop (Windows, macOS, Linux via JVM) and Android must share as much code as possible. iOS is planned as a future sibling client.
+2. **Native clients, shared contract.** Desktop (Windows, macOS, Linux via JVM) and Android each have their own UI, written against their platform's toolkit. What they share is the *contract* with the server — the models, DTOs, validation, and API client — so the two clients cannot drift apart on what an `Event` is. iOS is planned as a future native sibling client.
 3. **Calendar-shaped.** Most operations are reads over a date range and simple writes of individual items. This favours a straightforward request–response API over anything more elaborate.
 
 ## Modules
 
-The repository is organised as a **Kotlin Multiplatform** project with four Gradle modules:
+The repository is a multi-module **Gradle** build with four modules. Only `planer-core` is a **Kotlin Multiplatform** module; the others are plain JVM or Android modules.
 
 | Module | Platform | Purpose |
 |---|---|---|
-| `planer-core` | KMP (common) | Domain models, DTOs, validation, shared UI components, networking client |
+| `planer-core` | KMP (JVM, Android; iOS later) | Domain models, DTOs, validation, networking client. No UI. |
 | `planer-server` | JVM | Ktor HTTP server, persistence, authentication |
-| `planer-desktop` | JVM | Desktop entry point, packaging |
-| `planer-android` | Android | Android entry point, packaging |
+| `planer-desktop` | JVM | Desktop application: UI (Compose for Desktop), view models, packaging |
+| `planer-android` | Android | Android application: UI (Jetpack Compose), view models, packaging |
 
 A dependency rule holds throughout:
 
 - **`planer-core`** depends on nothing else in the repository. It is the foundation.
-- **`planer-server`** depends on `planer-core` for shared domain models and DTOs.
+- **`planer-server`** depends on `planer-core` for the shared domain models, DTOs, and validation rules. It does not use the networking client.
 - **`planer-desktop`** and **`planer-android`** depend on `planer-core`. They do **not** depend on each other, and they do **not** depend on `planer-server`.
 
 In other words: everything depends on `planer-core`, nothing depends on `planer-server` except the deployment pipeline.
 
-If iOS is added in the future, it becomes a fifth module (`planer-ios`) that depends on `planer-core` like the other clients. It does not touch `planer-android` or `planer-desktop`.
+Because `planer-core` also contains the networking client, the server's dependency graph includes the Ktor client library even though it never calls it. This is accepted for now; if it becomes a nuisance, the client can be split out into its own module without changing anything else.
+
+If iOS is added in the future, it becomes a fifth module (`planer-ios`) that depends on `planer-core` like the other clients, with a native UI of its own. It does not touch `planer-android` or `planer-desktop`.
 
 ## The Core Module
 
-`planer-core` is the heart of the client side. It contains:
+`planer-core` is the shared contract between the server and the clients. It contains:
 
 ### Domain models
 
-The shapes described in [Domain](../domain/Domain.md) — `User`, `Calendar`, `Event`, `Task`, `RecurrenceRule`, `PreparationStep` — as plain Kotlin data classes. These are the *shared* representation used on both sides of the wire.
+The shapes described in [Domain](../domain/Domain.md) — `User`, `Calendar`, `Event`, `Task`, `RecurrenceRule`, `PreparationStep` — as plain Kotlin data classes, free of framework annotations. They are the in-memory representation used by the server's business logic and by the clients.
 
 ### DTOs
 
-Request and response bodies for the API described in [Api](../api/Api.md).
-Keeping them in `planer-core` means both client and server compile against the same contract.
+Request and response bodies for the API described in [Api](../api/Api.md), serialized with kotlinx.serialization.
+Keeping them in `planer-core` means both client and server compile against the same wire contract. DTOs are separate from the domain models: the wire format includes fields the domain does not (for example `occurrenceDate` on expanded recurring events), and the two are allowed to diverge.
 
 ### Validation
 
 Rules like "title is 1–120 characters", "endsAt must be after startsAt", "color matches `^#[0-9A-Fa-f]{6}$`", "a preparation step's duration is between 1 and 1440 minutes". Validating on both client (for immediate UI feedback) and server (as the source of truth) using the same code eliminates drift between the two.
 
-### Shared UI
-
-The screens, components, view models, and navigation live here, written with **Compose Multiplatform**. The `planer-desktop` and `planer-android` modules only provide the platform-specific entry point and configuration.
-
 ### Networking client
 
-A thin HTTP client that both platforms use to talk to the server. It wraps the endpoints defined in `Api.md` and returns typed responses.
+A thin HTTP client that both clients use to talk to the server. It wraps the endpoints defined in [Api](../api/Api.md) and returns typed responses. It also:
+
+- attaches the `X-Client-Platform` and `X-Client-Version` headers to every request
+- injects the access token and refreshes it once on `401 UNAUTHORIZED`
+- maps non-2xx responses to a shared `ApiError` type (see [Error Handling](Error-Handling.md))
+- signals `UPGRADE_REQUIRED` so the app can show its forced-update screen
+
+Token *storage* is not part of the client: it is platform-specific (Android Keystore, the desktop OS keychain) and is provided by each app through an interface that `planer-core` defines.
+
+### What Core does not contain
+
+**No UI and no view models.** Screens, components, navigation, state holders, and anything that depends on a UI toolkit live in the client modules. This is deliberate: it keeps `planer-core` usable from the server, and it lets each client change its UI without touching the other.
 
 ## Client Applications
+
+Each client owns its entire UI layer. The two clients are structurally similar but share no UI code; where a screen exists on both, it is implemented twice, against the same `planer-core` contract.
 
 ### Desktop
 
 A JVM application built with **Compose for Desktop**. It provides:
 
+- The screens, components, navigation, and view models
 - A native window with platform-appropriate title bar, menu, and icon
 - Native file dialogs, tray icons, and other desktop-only integrations
+- Desktop secure storage for the refresh token (OS keychain)
 - Packaging for Windows (MSI), macOS (DMG), and Linux (DEB)
-
-Everything else — screens, state, networking — is inherited from `planer-core`.
 
 ### Android
 
 An Android application built with **Jetpack Compose**. It provides:
 
-- A single `MainActivity` that hosts the shared UI
+- The screens, components, navigation, and view models
+- A single `MainActivity` hosting the Compose UI
 - Android-specific integrations: notifications, permissions, background work
+- Android Keystore–backed storage for the refresh token
 - Packaging as APK / AAB
-
-Everything else — screens, state, networking — is inherited from `planer-core`.
 
 ### iOS (planned)
 
-If iOS support is added, it becomes a **sibling module** (`planer-ios`) that depends on `planer-core` alongside the other clients. The shared UI in `planer-core` would gain an `iosMain` source set for any `expect`/`actual` implementations iOS needs. `planer-android` would not change.
+If iOS support is added, it becomes a **sibling module** (`planer-ios`) with a native UI (SwiftUI) that consumes `planer-core` through Kotlin Multiplatform's iOS target. `planer-core` would gain an `iosMain` source set for any `expect`/`actual` implementations it needs. `planer-android` and `planer-desktop` would not change.
 
 ## Server
 
@@ -115,7 +126,7 @@ The internal structure of the server (how requests flow from a route to the data
 
 ### Persistence
 
-Data is stored in **PostgreSQL**. Migrations are versioned with **Flyway** and applied at startup.
+Data is stored in **PostgreSQL**, accessed through **Exposed**. Migrations are versioned with **Flyway** and applied automatically at startup, in every environment.
 See [Database](../infrastructure/Database.md) for the schema, naming conventions, and migration workflow.
 
 ### Computed timelines
@@ -123,20 +134,22 @@ See [Database](../infrastructure/Database.md) for the schema, naming conventions
 The server does two kinds of computation that would otherwise have to be
 duplicated on every client:
 
-- **Recurrence expansion** — recurring events and tasks are stored **once**, with a `RecurrenceRule`. When a client requests events in a date range, the server expands the rule into concrete occurrences before returning them.
+- **Recurrence expansion** — recurring events and tasks are stored **once**, with a `RecurrenceRule` and a `timeZone`. When a client requests items in a date range (at most 366 days), the server expands the rule, in that timezone, into concrete occurrences before returning them.
+- **Derived values** — streak, focus now, today's progress, overdue count, and the next routine start are computed in one place and served by the [Summary](../api/controllers/Api.Summary.md) endpoint.
 - **Routine layout** — an event with preparation steps carries a derived `routineStartAt` and, per step, a computed `startsAt`/`endsAt`. The server lays the steps out backward from the event's `startsAt`, so every client renders the same timeline without reimplementing the arithmetic.
 
-This is where the server earns its keep. The clients stay thin because the
-timeline is computed once, in one place, and shipped as data.
+This is where the server earns its keep. Because the clients no longer share any UI
+code, this matters even more: the timeline is computed once, in one place, and
+shipped as data, so two independently written UIs always agree on it.
 
 ## Communication Between Client and Server
 
 The protocol is **HTTP/JSON**, request–response, authenticated with a JWT bearer token.
 
 - **Stateless per request.** The server does not maintain session state. Every request carries the token and is answered independently.
-- **Versioned implicitly by shape.** If the contract changes, both sides are updated in lockstep — this is a single-repository, single-team project, so no formal API versioning is planned for now.
+- **Not versioned, but gated.** There is no `/v1/` prefix. Instead, every request carries `X-Client-Platform` and `X-Client-Version`, and the server answers `426 Upgrade Required` to clients below a configured minimum. Contract changes should be additive where possible; the minimum is raised only for breaking changes, and only once the new client is available to users. See [Api → Versioning and Forced Updates](../api/Api.md#versioning-and-forced-updates).
 - **Errors follow a single shape.** A JSON body with `status`, `code`, `message`, and optional `errors` (see [Api](../api/Api.md)).
-- **Timestamps are always UTC.** The client renders them in the user's timezone, which is stored on the `User`.
+- **Timestamps are always UTC.** The client renders them in the user's timezone, which is stored on the `User`. Events and tasks additionally carry their own `timeZone` so recurrence stays correct across daylight-saving changes (see [Domain → Timezones](../domain/Domain.md#timezones)).
 
 There is **no WebSocket, no server push, and no real-time collaboration**. The client polls when it needs fresh data, and only for the visible date range. This is sufficient for a personal planner and keeps the server simple.
 
@@ -158,10 +171,12 @@ This is noted here only to explain why the domain model already carries `updated
 | **Authentication** | Server. Issues and validates JWTs. |
 | **Authorization** | Server. Every query is scoped by the token's `sub` claim. |
 | **Validation** | Both. `planer-core` provides the rules; server re-validates as the source of truth. |
-| **Error handling** | Server catches and shapes errors; `planer-core` maps them to UI-friendly messages. |
-| **Timezones** | The `User.timezone` is authoritative. The client sends UTC instants; the server never assumes a timezone. |
+| **Error handling** | Server catches and shapes errors; `planer-core` maps them to a typed `ApiError`; each client turns that into UI. |
+| **Forced updates** | Server enforces the minimum client version; `planer-core` surfaces `UPGRADE_REQUIRED`; each client shows the blocking update screen. |
+| **Timezones** | `User.timezone` defines "today" and the default for new items; each item's own `timeZone` anchors its recurrence. The client sends UTC instants; the server never assumes a timezone. |
 | **Recurrence** | Server expands rules into occurrences. `planer-core` never re-implements the expansion. |
-| **Routines** | Server computes `routineStartAt` and per-step times. `planer-core` renders them. |
+| **Routines** | Server computes `routineStartAt` and per-step times. Clients render them. |
+| **Token storage** | Each client, using the platform's secure storage behind an interface defined in `planer-core`. |
 | **Localization** | Not in v1. The UI is English-only. |
 
 ## Open Questions
@@ -171,15 +186,15 @@ These are things the architecture does not commit to yet, and that will be settl
 ### Server
 
 1. **Server internal layout.** Whether to use explicit use cases, whether to split into named layers, how far to abstract the data access.
-2. **Database schema and ORM.** Whether to use Exposed, jOOQ, or plain SQL. Will be documented in `Database.md` when it is chosen.
+2. ~~**Database schema and ORM.**~~ **Resolved:** Exposed (DSL), with the schema owned by Flyway migrations. See [Database](../infrastructure/Database.md#data-access).
 
 ### Authentication
 
-3. **Unverified user capabilities.** What an unverified user is allowed to do. Options range from "nothing except verify" to "everything except email change." To be finalised when the verification flow is built.
-4. **Verification and reset token storage.** Whether tokens live in a dedicated table, are signed JWTs, or are stored as hashed opaque strings. Each option has different revocation and cleanup properties.
-5. **Token expiry and cleanup.** How long verification and password reset tokens live, and whether expired rows are cleaned up periodically or left to accumulate.
+3. ~~**Unverified user capabilities.**~~ **Resolved:** full use, except changing the email. See [Security](../security/Security.md#email-verification).
+4. ~~**Verification and reset token storage.**~~ **Resolved:** opaque random tokens, stored hashed in `one_time_tokens`. See [Security](../security/Security.md#one-time-tokens).
+5. ~~**Token expiry and cleanup.**~~ **Resolved:** verification 24 h, reset 1 h, cleaned up by a daily job. See [Security](../security/Security.md#one-time-tokens).
 6. **Email delivery mechanism.** SMTP directly, or a transactional email service (Resend, Postmark, SendGrid). Affects deliverability, cost, and how much code lives in the server.
-7. **Rate limiting on auth endpoints.** Login, register, forgot-password, and resend-verification all need protection against abuse. Ktor has a `RateLimit` plugin; the limits themselves are undecided.
+7. ~~**Rate limiting on auth endpoints.**~~ **Resolved:** limits proposed in [Security](../security/Security.md#rate-limiting), using Ktor's `RateLimit` plugin; thresholds to be tuned from real usage.
 
 ### Search
 
@@ -194,8 +209,12 @@ These are things the architecture does not commit to yet, and that will be settl
 
 ### Future Features
 
-13. **Notifications.** Whether to support reminders, how they are scheduled, and how they reach the user on desktop and Android. Would require a `Reminder` model, a scheduler, and platform-specific code. A routine's first step is a natural trigger point — *"start preparing now"* — but the notification system is deferred entirely.
+13. **Notifications.** General reminders are deferred: they would need a `Reminder` model, a scheduler, and platform-specific code. The one planned exception is the [routine start reminder](../features/Features.md#routine-start-reminder), a *local* notification each client schedules from data it already has, which needs no server-side component.
 14. **Routine templates.** A reusable `Routine` model that can be applied to an event with one click. Deferred to a future version; in v1 the routine lives directly on the event.
 15. **Offline support.** Whether to add a local cache in a future version and what shape it would take.
 16. **iOS.** Whether and when to add `planer-ios` as a sibling client, and what platform-specific integrations it would need.
 17. **Deployment topology.** Where the server runs, how TLS is terminated, whether a CDN fronts anything. Partially addressed in [Deployment](../infrastructure/Deployment.md); the cloud environment specifics are TBD.
+### Clients
+
+18. **Client-side state management.** Each client picks its own pattern for view models and state (for example, `ViewModel` + `StateFlow` on Android). Without shared view models, consider whether the two clients should at least follow the same conventions, documented here.
+19. **Client configuration.** How each client learns the server URL in release builds (build-time constant, settings screen, or both), now that `.env` files only make sense in development.

@@ -4,7 +4,8 @@ The Api is a RESTful HTTP interface served by the **Ktor** backend.
 All endpoints are prefixed with `/api` and communicate in JSON.
 
 - [Conventions](#conventions)
-- [Versioning](#versioning)
+- [Health](#health)
+- [Versioning and Forced Updates](#versioning-and-forced-updates)
 - [Authentication](#authentication)
 - [Authorization](#authorization)
 - [Error Format](#error-format)
@@ -19,8 +20,9 @@ All endpoints are prefixed with `/api` and communicate in JSON.
 | Health endpoint | `http://localhost:8080/health` (no `/api` prefix) |
 | Content type | `application/json` |
 | Auth header | `Authorization: Bearer <token>` |
+| Client headers | `X-Client-Platform: android \| desktop` and `X-Client-Version: <semver>` on every request (see [Versioning and Forced Updates](#versioning-and-forced-updates)) |
 | ID format | UUID v7 (36-character string) |
-| Dates | `yyyy-MM-dd` (e.g., `2025-07-15`) |
+| Dates | `yyyy-MM-dd` (e.g., `2025-07-15`). A date used as a range bound or filter is interpreted in the user's timezone. |
 | Timestamps | ISO-8601 UTC (e.g., `2025-07-15T09:00:00Z`) |
 | Timezone | Timestamps are always UTC; the client renders them in `User.timezone` |
 
@@ -35,21 +37,90 @@ A timestamp always includes the timezone (`Z` for UTC). A date never does.
 
 ### Idempotency
 
-`GET`, `PUT`, and `DELETE` requests are idempotent — repeating the same request produces the same result.
+`GET`, `PUT`, `PATCH`, and `DELETE` requests are idempotent — repeating the same request produces the same result. `PATCH` bodies are applied as a **JSON merge patch**: fields present are set, fields absent are left alone, and an explicit `null` clears a nullable field.
 
 `POST` requests are **not** idempotent. Repeating a `POST` to a creation endpoint will create a second resource. Clients that retry after a network failure must first check whether the original request succeeded.
 
-The bulk endpoints (`POST /api/tasks/bulk/*`, `POST /api/events/bulk/*`) share this property: they are not idempotent, and a retry may apply the operation twice. In practice this is harmless for complete/uncomplete, but the client should still avoid blind retries.
+The bulk endpoints (`POST /api/tasks/bulk/*`, `POST /api/events/bulk/*`) are `POST`s but their *effects* are naturally repeatable: deleting, completing, scheduling, moving, and reordering produce the same end state when applied twice. The exception is `bulk/shift`, which moves events by a delta and is therefore **not** safe to repeat blindly.
 
-## Versioning
+### Updates
 
-PlaneR does **not** version its API. The server and every client are built from
-the same repository and updated in lockstep. There is no `/v1/` prefix and no
-plan to add one — if a breaking change is needed, both sides change together
-and clients are expected to update.
+Partial updates use `PATCH`. `PUT` is used only for endpoints that set a specific piece of state (`/complete`, `/schedule`, `/position`, …). Every update that changes an event or task returns the **updated resource**, so the client never has to guess server-computed fields such as `routineStartAt`.
 
-This is acceptable because PlaneR has no third-party API consumers. If external
-integrations are ever added, this decision should be revisited.
+## Health
+
+```js
+GET {{host}}/health
+```
+
+Reports whether the server and its database connection are working.
+It has no `/api` prefix, requires no authentication, and is exempt from the
+client-version check and from rate limiting, so monitoring tools can call it freely.
+
+**Response**
+
+```json
+{ "status": "healthy" }
+```
+
+If the database is unreachable the server returns `503 Service Unavailable` with
+`{ "status": "unhealthy" }`. The body deliberately carries no detail — the cause is
+logged server-side, not exposed on a public endpoint.
+
+## Versioning and Forced Updates
+
+PlaneR does **not** version its API. There is no `/v1/` prefix and no plan to add
+one. The server and every client live in the same repository, and PlaneR has no
+third-party API consumers.
+
+Because mobile users cannot be updated in lockstep with the server, PlaneR instead
+has a **forced-update mechanism**: the server can refuse requests from clients that
+are too old.
+
+**How it works**
+
+1. Every client sends two headers on every request (including anonymous ones):
+
+   ```
+   X-Client-Platform: android
+   X-Client-Version: 0.2.1
+   ```
+
+2. The server holds a minimum supported version per platform, set through
+   configuration (`MIN_CLIENT_VERSION_ANDROID`, `MIN_CLIENT_VERSION_DESKTOP`).
+3. If the client's version is lower than the minimum for its platform, the server
+   answers **`426 Upgrade Required`** with the shared error body:
+
+   ```json
+   {
+     "status": 426,
+     "code": "UPGRADE_REQUIRED",
+     "message": "This version of PlaneR is no longer supported. Please update the app."
+   }
+   ```
+
+4. On `UPGRADE_REQUIRED`, the client stops making requests and shows a blocking
+   screen that sends the user to the app store or the Releases page.
+
+**Rules**
+
+- The version check runs **before** authentication, so an outdated client always
+  gets `426`, never a confusing `401`.
+- The check applies to every endpoint except `GET /health`.
+- If a minimum is not configured, the check is disabled. This is the default in
+  development, so `curl` and Postman work without extra headers.
+- If a minimum is configured and the headers are missing or malformed, the request
+  is rejected with `426`.
+- **Prefer additive changes.** New optional fields, new endpoints, and new enum
+  values should not require raising the minimum. Raising it is for breaking changes
+  only.
+- **Raise the minimum only after the new client is available to users.** Google Play
+  review can lag behind a server deploy, and raising the minimum early locks every
+  user out. Deploy order for a breaking change: publish the new clients, wait until
+  they are live, then raise the minimum.
+
+If external integrations are ever added, the decision not to version the API should
+be revisited.
 
 ## Authentication
 
@@ -67,6 +138,7 @@ The following endpoints allow anonymous requests:
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/refresh`
+- `POST /api/auth/logout` (it authenticates by the refresh token in its body, so it works even when the access token has expired)
 - `POST /api/auth/forgot-password`
 - `POST /api/auth/reset-password`
 - `POST /api/auth/verify-email`
@@ -74,6 +146,8 @@ The following endpoints allow anonymous requests:
 - `GET /health`
 
 Every other endpoint returns `401 Unauthorized` if the token is missing, expired, or invalid.
+A client that receives `401` with code `UNAUTHORIZED` should try to refresh its access
+token once and, if that fails, send the user back to login.
 
 ### Rate Limiting
 
@@ -119,7 +193,7 @@ All errors return a JSON body in the following shape:
 ```json
 {
   "status": 400,
-  "code": "BAD_REQUEST",
+  "code": "VALIDATION_ERROR",
   "message": "One or more fields are invalid.",
   "errors": {
     "email": ["must be a valid email address"],
@@ -128,34 +202,39 @@ All errors return a JSON body in the following shape:
 }
 ```
 
-The `errors` map is optional and only present when the server can attribute the
-failure to specific fields. When it is absent, the `message` field is the
-primary explanation.
+The `code` field is the source of truth; clients switch on it and never parse
+`message`. The `errors` map is present **only** with `VALIDATION_ERROR`.
 
-Common codes:
+Codes:
 
 | Status | Code | Meaning |
 |---|---|---|
-| 400 | `BAD_REQUEST` | The request is malformed or contains invalid values |
-| 401 | `UNAUTHORIZED` | Missing, expired, or invalid token |
+| 400 | `VALIDATION_ERROR` | Well-formed request, but one or more field values failed validation. Includes `errors`. |
+| 400 | `BAD_REQUEST` | Malformed request: invalid JSON, wrong types, missing or invalid headers |
+| 400 | `TOKEN_INVALID` | A verification or reset token is malformed, already used, or does not match |
+| 400 | `TOKEN_EXPIRED` | A verification or reset token has expired |
+| 401 | `UNAUTHORIZED` | Missing, expired, or invalid access token |
+| 401 | `INVALID_CREDENTIALS` | Wrong email/password at login, or wrong current password when confirming a sensitive action |
 | 403 | `FORBIDDEN` | Account-state failure (unverified, suspended, missing capability) |
 | 404 | `NOT_FOUND` | Resource does not exist or is not owned by the caller |
 | 409 | `CONFLICT` | Unique constraint violated, or a state-based conflict |
-| 429 | `RATE_LIMITED` | Too many requests — see [Rate Limiting](#rate-limiting) |
+| 426 | `UPGRADE_REQUIRED` | Client version is below the minimum — see [Versioning and Forced Updates](#versioning-and-forced-updates) |
+| 429 | `RATE_LIMITED` | Too many requests — see [Rate Limiting](#rate-limiting). Includes a `Retry-After` header. |
 | 500 | `INTERNAL_ERROR` | Unhandled server error |
 
-**A note on `400`:** PlaneR uses `400 Bad Request` for both malformed requests
-(JSON syntax errors, missing headers) and validation failures (field values that
-do not satisfy the rules). This is a deliberate simplification — the `errors`
-map in the body is what tells the client which case applies.
+Verification and reset tokens are anonymous-endpoint inputs, so their failures use
+`400` rather than `401`: a `401` on those endpoints would look like an expired
+session and could trigger the client's refresh-or-logout logic.
 
-If a client needs to distinguish the two, it should check whether the `errors`
-field is present: absent means the request was malformed, present means
-specific fields failed validation.
+New codes are added only when a failure mode is genuinely distinct; existing codes
+are never overloaded. See [Error Handling](../architecture/Error-Handling.md) for how
+clients map these to behaviour.
 
 ## Pagination
 
 Collection endpoints that can return an unbounded number of items use **page-based pagination**.
+
+**Range queries are not paginated.** A calendar or day view needs *every* item in its date range, so `GET /api/events` and `GET /api/tasks?from=…&to=…` return the complete result for the range instead of a page. They are bounded another way: the range may not exceed **366 days** (otherwise `400 VALIDATION_ERROR`), which also bounds the work of expanding recurring items. Their responses are `{ "items": [ ... ] }` without the page fields.
 
 **Request parameters**
 
@@ -190,5 +269,6 @@ documented in the controller file.
 - [Calendar](controllers/Api.Calendar.md) — colored groupings for events and tasks
 - [Event](controllers/Api.Event.md) — time-bound occurrences
 - [Search](controllers/Api.Search.md) — global search across events and tasks *(sketch — not final)*
+- [Summary](controllers/Api.Summary.md) — derived values for the home screen: streak, focus now, progress, overdue
 - [Task](controllers/Api.Task.md) — to-do items
 - [User](controllers/Api.User.md) — the authenticated user's profile and account

@@ -72,17 +72,20 @@ To run all integration tests:
 ./gradlew :planer-server:integrationTest
 ```
 
+`integrationTest` is a separate Gradle task with its own source set, so `./gradlew :planer-server:test` runs only the fast unit tests, and the two never run in the same invocation by accident.
+
 **Conventions specific to the server:**
 
 - The system under test is held in a field named **`sut`**
-- Test classes live in `test/integration`, grouped by collection
+- Test classes live in `src/integrationTest/kotlin/app/planer/server/integration`, grouped by collection
 - Database state is reset per method, not per class
+- The client-version check is disabled in the test configuration by default. Tests of the forced-update behaviour set `MIN_CLIENT_VERSION_*` explicitly and send `X-Client-Platform` / `X-Client-Version`.
 
 ### Api Integration
 
 The HTTP surface is tested by sending real requests through a **Ktor test client** against the **Test Application**.
 
-The supporting classes live in `planer-server/src/test/kotlin/core`:
+The supporting classes live in `planer-server/src/integrationTest/kotlin/app/planer/server/core`:
 
 - **Test Application** — builds the Ktor app with test configuration
 - **Base Integration Test** — provides the client and manages per-test state
@@ -139,20 +142,31 @@ The header is set automatically by `AppHttpClient.withToken(...)`.
 
 #### Collections
 
-Integration tests are grouped into **JUnit 5 test collections**, each backed by its own Postgres container. The container is started once per collection and shared across all test classes in it.
-
-To create a collection:
+Integration tests are grouped into **collections**, each backed by its own Postgres container. JUnit 5 has no built-in notion of a collection (the term comes from xUnit), so in PlaneR a collection is simply **an abstract base class** that owns a container and a dataset:
 
 ```kotlin
-class UserCollection : TestCollection(UserTestData())
-
-abstract class UserTestData : ITestData {
+object UserTestData : ITestData {
     override fun seed(): SeedData = seedOf(
         users = listOf(alexMorgan, samLee)
     )
 }
+
+abstract class UserCollection : BaseIntegrationTest(
+    postgres = UserCollection.postgres,
+    data = UserTestData
+) {
+    companion object {
+        // Started lazily on first use, once per JVM, shared by every subclass
+        val postgres = PostgresTestContainer()
+    }
+}
+
+class GetCurrentUserTest : UserCollection() {
+    @Test
+    fun whenAuthenticated_shouldReturnProfile() = runTest { /* uses `client` */ }
+}
 ```
 
-Every test class in the collection extends `BaseIntegrationTest` and uses the same container. The **Resetter** wipes the tables between test methods.
+Because the container lives in the base class's `companion object`, every test class that extends `UserCollection` shares one container, and a different collection gets a different one. The **Resetter** wipes the tables between test methods and re-seeds from the collection's `ITestData`.
 
 One container per collection, reset per method — fast test runs while keeping tests isolated.

@@ -18,27 +18,45 @@ May carry a **routine** — an ordered list of preparation steps the user perfor
 before the event starts, used for reverse planning. See
 [Domain → Preparation Steps](../../domain/Domain.md#preparation-steps).
 
+Every event has a `timeZone` (an IANA identifier). Recurrence, all-day boundaries, and
+daylight-saving transitions are computed in that zone, so a 09:00 standup stays at
+09:00 local time all year. See [Domain → Timezones](../../domain/Domain.md#timezones).
+
+### Recurring events: scopes and occurrences
+
+A recurring event is stored once and expanded into occurrences on read. There are two
+ways to change it:
+
+- **The whole series, or a series from some point on** — [Update](#update) and
+  [Delete](#delete) take `scope=all` or `scope=future`. `future` splits the series at
+  `occurrenceDate`, so it is required with `future`.
+- **One occurrence** — [Override Occurrence](#override-occurrence) and
+  [Skip Occurrence](#skip-occurrence), addressed by date.
+
 ---
 
 ## Get Collection
 
-Returns events in a date range. Recurring events are expanded into their occurrences
-within the range.
+Returns events overlapping a date range. Recurring events are expanded into their
+occurrences within the range.
 
 ```js
-GET {{host}}/api/events?from=2025-07-13&to=2025-07-19&calendarIds=11111111-...&unassigned=false&page=0&size=20
+GET {{host}}/api/events?from=2025-07-13&to=2025-07-19&calendarIds=11111111-...&unassigned=false
 ```
 
 **Query parameters**
 
 | Param | Required | Notes |
 |---|---|---|
-| `from` | yes | Start of range, inclusive (ISO date or timestamp) |
-| `to` | yes | End of range, inclusive |
+| `from` | yes | First day of the range, `yyyy-MM-dd`, inclusive, in the user's timezone |
+| `to` | yes | Last day of the range, `yyyy-MM-dd`, inclusive, in the user's timezone |
 | `calendarIds` | no | Comma-separated list; omit to include all calendars |
 | `unassigned` | no | If `true`, only events with `calendarId = null` |
-| `page` | no | Default `0` |
-| `size` | no | Default `20`, max `100` |
+
+- The range covers whole days: from the start of `from` to the end of `to`, in the user's timezone.
+- An event is returned if it **overlaps** the range at all, so an event that starts the day before `from` and ends inside the range is included.
+- The range must not exceed **366 days**; otherwise `400 VALIDATION_ERROR`.
+- The result is **not paginated** (see [Api → Pagination](../Api.md#pagination)) and is sorted by `startsAt`, then `id`.
 
 **Response**
 
@@ -53,6 +71,7 @@ GET {{host}}/api/events?from=2025-07-13&to=2025-07-19&calendarIds=11111111-...&u
       "location": "Café Central",
       "startsAt": "2025-07-15T17:30:00Z",
       "endsAt": "2025-07-15T20:00:00Z",
+      "timeZone": "Europe/Berlin",
       "allDay": false,
       "recurrence": null,
       "routineStartAt": "2025-07-15T15:30:00Z",
@@ -62,18 +81,16 @@ GET {{host}}/api/events?from=2025-07-13&to=2025-07-19&calendarIds=11111111-...&u
         { "name": "Walk dog", "duration": 20, "startsAt": "2025-07-15T16:40:00Z", "endsAt": "2025-07-15T17:00:00Z" },
         { "name": "Travel",   "duration": 30, "startsAt": "2025-07-15T17:00:00Z", "endsAt": "2025-07-15T17:30:00Z" }
       ],
-      "occurrenceDate": "2025-07-15",
+      "createdAt": "2025-07-01T10:00:00Z",
+      "updatedAt": "2025-07-01T10:00:00Z",
+      "occurrenceDate": null,
       "isRecurringInstance": false
     }
-  ],
-  "page": 0,
-  "size": 20,
-  "totalItems": 1,
-  "totalPages": 1
+  ]
 }
 ```
 
-`occurrenceDate` is present only for expanded occurrences of a recurring event.
+`occurrenceDate` is the occurrence's local date (`yyyy-MM-dd`) for expanded occurrences of a recurring event, and `null` otherwise. For an occurrence, `startsAt`/`endsAt`/`routine` are those of the occurrence, while `id` is the series' id.
 
 `routineStartAt` is `null` when the event has no routine.
 
@@ -87,8 +104,9 @@ GET {{host}}/api/events/{id}
 
 **Response**
 
-The event object, same shape as a single entry in **Get Collection**,
-without `occurrenceDate` / `isRecurringInstance`.
+The event object, same shape as a single entry in **Get Collection**. For a
+recurring event it is the series itself (the first occurrence's times), with
+`occurrenceDate` and `isRecurringInstance` both `null`/`false`.
 
 ---
 
@@ -108,6 +126,7 @@ POST {{host}}/api/events
   "location": "Café Central",
   "startsAt": "2025-07-15T17:30:00Z",
   "endsAt": "2025-07-15T20:00:00Z",
+  "timeZone": "Europe/Berlin",
   "allDay": false,
   "recurrence": null,
   "routine": [
@@ -127,15 +146,17 @@ POST {{host}}/api/events
 | `location` | no | Max 200 chars |
 | `startsAt` | yes | ISO-8601 UTC |
 | `endsAt` | yes | ISO-8601 UTC, must be after `startsAt` |
-| `allDay` | no | Default `false` |
+| `timeZone` | no | IANA identifier; defaults to the user's current timezone |
+| `allDay` | no | Default `false`. When `true`, `startsAt` and `endsAt` must be local midnights in `timeZone`. |
 | `recurrence` | no | `RecurrenceRule` object or `null` |
-| `routine` | no | Ordered list; omit or pass `[]` for none. Max 20 steps. |
+| `routine` | no | Ordered list; omit or pass `[]` for none. Max 20 steps. Not allowed on all-day events. |
 
 **Routine validation**
 
 - `name` — 1–60 characters, trimmed
 - `duration` — 1 to 1440 (in minutes; 24 hours max per step)
 - Total routine duration must not exceed **24 hours** (1440 minutes). An event whose steps add up to more than a day is almost certainly a data-entry mistake.
+- An event with `allDay = true` cannot have a routine: preparing "before" an all-day banner has no meaning.
 
 **Response**
 
@@ -144,22 +165,29 @@ The created event, same shape as **Get**. `routineStartAt` and per-step
 
 **Errors**
 
-- `400 Bad Request` if `endsAt` is not after `startsAt`, if a routine step fails validation, or if the total routine duration exceeds 24 hours
-- `404 Not Found` if `calendarId` is not owned by the user
+- `400 VALIDATION_ERROR` if `endsAt` is not after `startsAt`, if `timeZone` is not a valid identifier, if an all-day event's times are not local midnights, if a routine step fails validation, if the total routine duration exceeds 24 hours, or if an all-day event has a routine
+- `404 NOT_FOUND` if `calendarId` is not owned by the user
 
 ---
 
 ## Update
 
+Partially updates an event, using JSON merge-patch semantics (see [Api → Updates](../Api.md#updates)).
+
 ```js
-PUT {{host}}/api/events/{id}
+PATCH {{host}}/api/events/{id}
 ```
 
 **Query parameters**
 
 | Param | Values | Default | Meaning |
 |---|---|---|---|
-| `scope` | `single` \| `future` \| `all` | `all` | Only relevant for recurring events |
+| `scope` | `all` \| `future` | `all` | Only relevant for recurring events |
+| `occurrenceDate` | `yyyy-MM-dd` | — | Required when `scope=future`: the first occurrence the change applies to |
+
+With `scope=future` the series is split at `occurrenceDate`: the original series is
+ended the day before, and a new series carrying the changes starts on that date.
+To change a single occurrence, use [Override Occurrence](#override-occurrence).
 
 **Request**
 
@@ -170,16 +198,13 @@ update of individual steps — the client sends the full list every time.
 
 **Response**
 
-```json
-{
-  "message": "Event updated."
-}
-```
+The updated event, same shape as **Get**, including the recomputed `routineStartAt`
+and routine step times. With `scope=future` it is the **new** series.
 
 **Errors**
 
-- `400 Bad Request` if the request violates the time or routine constraints
-- `404 Not Found` if the event is not owned by the user
+- `400 VALIDATION_ERROR` if the request violates the time or routine constraints, or if `scope=future` is used without `occurrenceDate`
+- `404 NOT_FOUND` if the event is not owned by the user
 
 ---
 
@@ -197,21 +222,20 @@ PUT {{host}}/api/events/{id}/move
 ```json
 {
   "startsAt": "2025-07-15T18:00:00Z",
-  "endsAt": "2025-07-15T20:30:00Z"
+  "endsAt": "2025-07-15T20:30:00Z",
+  "occurrenceDate": null
 }
 ```
+
+For a recurring event, pass `occurrenceDate` to move **just that occurrence** (it
+becomes an [override](#override-occurrence)). Without it, the whole series is moved:
+`startsAt`/`endsAt` are the new times of the series' first occurrence.
 
 **Response**
 
-```json
-{
-  "message": "Event moved.",
-  "routineStartAt": "2025-07-15T16:00:00Z"
-}
-```
-
-The response includes the recomputed `routineStartAt` so the client can update
-the grid without a refetch.
+The updated event, same shape as **Get** (or, for a single occurrence, the occurrence
+as it now appears in **Get Collection**). The recomputed `routineStartAt` is included,
+so the client can update the grid without a refetch.
 
 ---
 
@@ -225,7 +249,10 @@ DELETE {{host}}/api/events/{id}
 
 | Param | Values | Default | Meaning |
 |---|---|---|---|
-| `scope` | `single` \| `future` \| `all` | `all` | Only relevant for recurring events |
+| `scope` | `all` \| `future` | `all` | Only relevant for recurring events |
+| `occurrenceDate` | `yyyy-MM-dd` | — | Required when `scope=future`: the series ends the day before this date |
+
+To remove a single occurrence, use [Skip Occurrence](#skip-occurrence).
 
 **Response**
 
@@ -239,31 +266,36 @@ DELETE {{host}}/api/events/{id}
 
 ## Override Occurrence
 
-Creates or updates a `RecurrenceException` for a single occurrence of a recurring event.
+Creates or replaces the `RecurrenceException` for a single occurrence of a recurring event.
 
 ```js
 PUT {{host}}/api/events/{id}/occurrences/{date}
 ```
 
-- `date` — occurrence date in `yyyy-MM-dd`
+- `date` — the occurrence's local date in `yyyy-MM-dd`
 
 **Request**
 
-Same shape as **Update**, but applies only to the given occurrence.
+The overridable fields: `title`, `description`, `location`, `startsAt`, `endsAt`,
+`allDay`, and `routine`. Fields not sent keep the series' values. `calendarId` and
+`recurrence` cannot be overridden for one occurrence.
+
+`PUT` here means *"the override for this date is exactly this"*: sending it again
+replaces the previous override rather than merging into it.
 
 **Response**
 
-```json
-{
-  "message": "Occurrence updated."
-}
-```
+The occurrence as it now appears in **Get Collection**.
+
+**Errors**
+
+- `404 NOT_FOUND` if the event is not owned by the user, or `date` is not an occurrence of it
 
 ---
 
 ## Skip Occurrence
 
-Marks a single occurrence as skipped.
+Marks a single occurrence as skipped. The series is otherwise unchanged.
 
 ```js
 DELETE {{host}}/api/events/{id}/occurrences/{date}
@@ -281,12 +313,26 @@ DELETE {{host}}/api/events/{id}/occurrences/{date}
 
 ## Convert to Task
 
-Deletes the event and creates a task from its fields.
-The event's `routine` is **discarded** — a Task has no preparation concept.
+Converts the event into a task. The operation is **atomic**: the event is deleted and
+the task created in one transaction, or neither happens.
 
 ```js
 POST {{host}}/api/events/{id}/convert-to-task
 ```
+
+What carries over:
+
+| Event | Task |
+|---|---|
+| `title`, `description`, `calendarId`, `timeZone`, `recurrence` | same |
+| `createdAt` | same (the task keeps the event's creation time) |
+| `startsAt` / `endsAt` | `scheduledStartAt` / `scheduledEndAt`, and `scheduledFor` is the local date of `startsAt` — unless overridden below |
+| `location` | dropped (a task has no location) |
+| `routine` | **discarded** — a task has no preparation concept |
+| occurrence overrides and skips | dropped; only the series itself converts |
+
+The task gets a **new id**; the event's id stops existing. A recurring event becomes a
+recurring task with no completions.
 
 **Request**
 
@@ -297,7 +343,9 @@ POST {{host}}/api/events/{id}/convert-to-task
 }
 ```
 
-All fields are optional; if omitted, the event's times are used as a starting point.
+All fields are optional. `scheduledFor`, `scheduledStartAt`, `scheduledEndAt`, and
+`dueAt` override the defaults above. For an all-day event, only `scheduledFor` is set
+(no time block).
 
 **Response**
 
@@ -307,7 +355,7 @@ The newly created task, same shape as **Task → Get**.
 
 ## Bulk Delete
 
-Deletes multiple events in a single request.
+Deletes multiple events (whole events, including all occurrences of recurring ones) in a single request.
 
 ```js
 POST {{host}}/api/events/bulk/delete
@@ -320,15 +368,13 @@ POST {{host}}/api/events/bulk/delete
   "ids": [
     "22222222-0000-7000-8000-000000000001",
     "22222222-0000-7000-8000-000000000002"
-  ],
-  "scope": "all"
+  ]
 }
 ```
 
 | Field | Required | Notes |
 |---|---|---|
-| `ids` | yes | 1–100 items, all owned by the user |
-| `scope` | no | `single` \| `future` \| `all`, default `all`; only relevant for recurring events |
+| `ids` | yes | 1–100 items |
 
 **Response**
 
@@ -341,6 +387,9 @@ POST {{host}}/api/events/bulk/delete
   "notFound": []
 }
 ```
+
+`notFound` covers ids that do not exist or are not owned by the caller.
+The endpoint never fails the whole batch because of one missing id.
 
 ---
 
@@ -364,9 +413,15 @@ POST {{host}}/api/events/bulk/shift
 }
 ```
 
-Shifts `startsAt` and `endsAt` of every event by the same amount.
-The routine shifts along with the event — the total preparation duration is
-unchanged, so `routineStartAt` shifts by the same delta.
+Shifts `startsAt` and `endsAt` of every event by the same amount. For a recurring
+event the whole series shifts. The routine shifts along with the event — the total
+preparation duration is unchanged, so `routineStartAt` shifts by the same delta.
+
+If any of the events is all-day, `deltaMinutes` must be a multiple of 1440, otherwise
+the request fails with `400 VALIDATION_ERROR`.
+
+This endpoint is **not safe to retry blindly**: applying it twice shifts the events
+twice. If a request times out, re-read the events before repeating it.
 
 **Response**
 
@@ -418,4 +473,4 @@ POST {{host}}/api/events/bulk/move
 
 **Errors**
 
-- `404 Not Found` if `calendarId` is not owned by the caller
+- `404 NOT_FOUND` if `calendarId` is not owned by the caller

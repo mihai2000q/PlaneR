@@ -3,6 +3,8 @@
 - [Get Current User](#get-current-user)
 - [Update Current User](#update-current-user)
 - [Change Email](#change-email)
+- [Cancel Email Change](#cancel-email-change)
+- [Resend Email Change](#resend-email-change)
 - [Change Password](#change-password)
 - [Delete Current User](#delete-current-user)
 
@@ -23,13 +25,16 @@ GET {{host}}/api/users/me
   "id": "0192a3b4-0000-7000-8000-000000000000",
   "email": "alex@example.com",
   "emailVerified": true,
+  "pendingEmail": null,
   "displayName": "Alex Morgan",
-  "avatarUrl": "https://cdn.planer.app/avatars/0192a3b4.png",
+  "avatarUrl": "https://example.com/avatars/alex.png",
   "timezone": "Europe/Berlin",
   "createdAt": "2025-07-15T12:00:00Z",
   "updatedAt": "2025-07-16T09:30:00Z"
 }
 ```
+
+`pendingEmail` is non-null while an [email change](#change-email) is awaiting verification.
 
 ---
 
@@ -39,7 +44,7 @@ Partially updates the current user's profile.
 Only the fields provided are changed.
 
 ```js
-PUT {{host}}/api/users/me
+PATCH {{host}}/api/users/me
 ```
 
 **Request**
@@ -47,7 +52,7 @@ PUT {{host}}/api/users/me
 ```json
 {
   "displayName": "Alex M.",
-  "avatarUrl": "https://cdn.planer.app/avatars/0192a3b4.png",
+  "avatarUrl": "https://example.com/avatars/alex.png",
   "timezone": "Europe/London"
 }
 ```
@@ -55,12 +60,16 @@ PUT {{host}}/api/users/me
 | Field | Required | Notes |
 |---|---|---|
 | `displayName` | no | 1–60 chars |
-| `avatarUrl` | no | Valid URL or `null` to clear |
+| `avatarUrl` | no | An `https` URL up to 500 chars, or `null` to clear. PlaneR does not host avatars; the URL points to an image elsewhere. |
 | `timezone` | no | Valid IANA identifier |
 
 **Response**
 
 The updated user object, same shape as **Get Current User**.
+
+Changing `timezone` affects what "today" and "this week" mean from now on, and the
+default timezone of items created afterwards. It does **not** move existing events
+or tasks, which keep their own `timeZone` (see [Domain](../../domain/Domain.md#timezones)).
 
 Email changes are deliberately **not** handled here — see **Change Email** below.
 
@@ -69,13 +78,11 @@ Email changes are deliberately **not** handled here — see **Change Email** bel
 ## Change Email
 
 Requests an email change.
-The new address is stored as `pendingEmail` and a verification link is sent to it.
+The new address is stored as `pendingEmail`. A verification link is sent to the new
+address, and a notification is sent to the current one.
 The current address remains active until the new one is verified.
 
-While an email change is pending, the account cannot be marked as verified for
-the new address. The user may cancel by re-authenticating with their password
-and calling this endpoint again with `null`, or by waiting for the pending
-verification token to expire.
+The account's current email must itself be verified.
 
 ```js
 PUT {{host}}/api/users/me/email
@@ -95,6 +102,9 @@ PUT {{host}}/api/users/me/email
 | `newEmail` | yes | Valid email, unique, different from current |
 | `currentPassword` | yes | Confirms the user's identity |
 
+Calling this again while a change is pending replaces the pending address and
+invalidates the earlier link.
+
 **Response**
 
 ```json
@@ -104,10 +114,58 @@ PUT {{host}}/api/users/me/email
 }
 ```
 
+The change completes when the user redeems the link through
+[Verify Email](Api.Auth.md#verify-email). If the link expires, the change is discarded.
+
 **Errors**
 
-- `401 Unauthorized` if `currentPassword` is incorrect
-- `409 Conflict` if `newEmail` is already registered
+- `400 VALIDATION_ERROR` if `newEmail` is invalid or equals the current address
+- `401 INVALID_CREDENTIALS` if `currentPassword` is incorrect
+- `403 FORBIDDEN` if the current email is not verified
+- `409 CONFLICT` if `newEmail` is already registered
+
+---
+
+## Cancel Email Change
+
+Discards a pending email change. The current address is unaffected.
+
+```js
+DELETE {{host}}/api/users/me/email
+```
+
+**Response**
+
+```json
+{
+  "message": "Email change cancelled."
+}
+```
+
+Cancelling when nothing is pending is not an error.
+
+---
+
+## Resend Email Change
+
+Sends the verification link for a pending email change again.
+Rate-limited to 3 per hour per account.
+
+```js
+POST {{host}}/api/users/me/email/resend
+```
+
+**Response**
+
+```json
+{
+  "message": "Verification email sent to the new address."
+}
+```
+
+**Errors**
+
+- `404 NOT_FOUND` if no email change is pending
 
 ---
 
@@ -134,12 +192,12 @@ PUT {{host}}/api/users/me/password
 }
 ```
 
-All refresh tokens except the current one are revoked, so other devices are signed out.
+All refresh tokens except the current session's are revoked, so other devices are signed out.
 
 **Errors**
 
-- `401 Unauthorized` if `currentPassword` is incorrect
-- `400 Validation Error` if `newPassword` does not meet the strength requirements
+- `401 INVALID_CREDENTIALS` if `currentPassword` is incorrect
+- `400 VALIDATION_ERROR` if `newPassword` does not meet the [password policy](../../security/Security.md#password-policy)
 
 ---
 
@@ -148,8 +206,11 @@ All refresh tokens except the current one are revoked, so other devices are sign
 Deletes the account and **all** owned data (calendars, events, tasks, and refresh tokens).
 This action is irreversible.
 
+This is a `POST`, not a `DELETE`, because it carries a body and some HTTP clients
+and proxies drop bodies on `DELETE`.
+
 ```js
-DELETE {{host}}/api/users/me
+POST {{host}}/api/users/me/delete
 ```
 
 **Request**
@@ -170,4 +231,4 @@ DELETE {{host}}/api/users/me
 
 **Errors**
 
-- `401 Unauthorized` if the password is incorrect
+- `401 INVALID_CREDENTIALS` if the password is incorrect

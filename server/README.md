@@ -75,6 +75,8 @@ The required variables are:
 | `DB_PASSWORD` | Database password | `planer` |
 | `JWT_SECRET_KEY` | Signing key for tokens, min 32 bytes | *(set manually — see Security)* |
 | `SERVER_PORT` | Port the server listens on | `8080` |
+| `MIN_CLIENT_VERSION_ANDROID` | Minimum Android app version; older clients get `426`. Leave unset to disable the check. | *(unset)* |
+| `MIN_CLIENT_VERSION_DESKTOP` | Minimum Desktop app version; same behaviour | *(unset)* |
 
 See [Security](../.docs/security/Security.md) for the requirements on `JWT_SECRET_KEY` and the [Database doc](../.docs/infrastructure/Database.md#connection-configuration) for details on the connection variables.
 
@@ -97,7 +99,7 @@ If you want to run only the database and let the server run from your IDE, use:
 docker compose up -d database
 ```
 
-No matter where the database instance runs, it starts empty and you need to apply the migrations before the server can operate. The server runs them automatically on startup when run in a container, but for local runs use the shell script below.
+The database starts empty. You do not need to prepare it: **the server applies all pending Flyway migrations automatically on startup**, wherever it runs — in a container, from the IDE, or from the CLI. To apply migrations without starting the server, see [Migration](#migration).
 
 ### Restore Dependencies
 
@@ -131,7 +133,7 @@ A healthy response looks like:
 { "status": "healthy" }
 ```
 
-If the database is unreachable, the server returns `503 Service Unavailable` with a body explaining why.
+If the database is unreachable, the server returns `503 Service Unavailable` with `{ "status": "unhealthy" }`. The cause is written to the server log, not to the response. See [Api → Health](../.docs/api/Api.md#health).
 
 To verify that authentication is wired up correctly, try:
 
@@ -187,9 +189,10 @@ planer-server/
     │       ├── application-test.conf   # Configuration for integration tests
     │       ├── logback.xml
     │       └── db/migration/           # Flyway SQL migrations
-    └── test/kotlin/app/planer/server/
+    ├── test/kotlin/app/planer/server/
+    │   └── ...                     # Unit tests, mirroring the main package
+    └── integrationTest/kotlin/app/planer/server/
         ├── core/                   # Test Application, BaseIntegrationTest, AppHttpClient
-        ├── unit/                   # Unit tests, mirroring main package
         └── integration/            # Integration tests, grouped by collection
 ```
 
@@ -197,7 +200,7 @@ The exact package layout inside `service/`, `repository/`, and `database/` is no
 
 ## Architecture
 
-PlaneR follows a **client–server** architecture with a shared **Kotlin Multiplatform** core module. The server's role is well-defined even though its internal structure is still being decided:
+PlaneR follows a **client–server** architecture with a shared **Kotlin Multiplatform** core module (models, DTOs, validation, API client — no UI). The server's role is well-defined even though its internal structure is still being decided:
 
 **Responsibilities**
 
@@ -229,6 +232,7 @@ The controllers are:
 - [Calendar](../.docs/api/controllers/Api.Calendar.md)
 - [Event](../.docs/api/controllers/Api.Event.md)
 - [Task](../.docs/api/controllers/Api.Task.md)
+- [Summary](../.docs/api/controllers/Api.Summary.md)
 - [Search](../.docs/api/controllers/Api.Search.md) *(sketch — not final)*
 
 ### Authentication
@@ -250,7 +254,7 @@ With the body:
 }
 ```
 
-The response includes an `accessToken` and a `refreshToken`. Set the access token as the Bearer token in your HTTP client and every subsequent request will be authenticated.
+The response includes an `accessToken` (valid for 15 minutes) and a `refreshToken` (valid for 60 days, rotated on every use). Set the access token as the Bearer token in your HTTP client and every subsequent request will be authenticated; when it expires, exchange the refresh token at `POST /api/auth/refresh`.
 
 For more on the token model — signing, refresh, revocation, and expiry — see [Security](../.docs/security/Security.md).
 
@@ -258,13 +262,13 @@ For more on the token model — signing, refresh, revocation, and expiry — see
 
 The database chosen for this application infrastructure is **PostgreSQL**.
 
-For more information about the database — schema, naming conventions, and value-object flattening — please check out the [Database documentation](../.docs/infrastructure/Database.md).
+For more information about the database — naming conventions, schema, indexes, and value-object storage — please check out the [Database documentation](../.docs/infrastructure/Database.md). Data access uses **Exposed** (DSL).
 
 ### Migration
 
-**Flyway** is the database migration tool. Migration files are versioned SQL scripts under `src/main/resources/db/migration/` and are applied at startup, keeping the schema in sync with the codebase.
+**Flyway** is the database migration tool. Migration files are versioned SQL scripts under `src/main/resources/db/migration/` and are applied automatically at startup, keeping the schema in sync with the codebase. Applied migrations are never edited; mistakes are fixed with a new migration (Flyway Community has no undo — see [Database → Rolling Back](../.docs/infrastructure/Database.md#rolling-back)).
 
-To apply migrations manually:
+To apply migrations without starting the server:
 
 ```sh
 ./gradlew :planer-server:flywayMigrate
@@ -280,7 +284,7 @@ The `apply-database-migrations.sh` shell script wraps the Gradle task and reads 
 
 ## Testing
 
-The server is tested at two levels — **Unit** and **Integration**. Both use **Kotlin Test** and **JUnit 5** for assertions.
+The server is tested at two levels — **Unit** and **Integration**. Both use **JUnit 5** with **Kotest assertions**.
 
 End-to-end tests exist for the **clients** (desktop and Android) but not for the server in isolation.
 
@@ -288,7 +292,7 @@ The full test strategy is documented in [Testing](../.docs/testing/Testing.md). 
 
 ### Unit Testing
 
-Unit tests exercise a single class or function in isolation, with no database and no HTTP. They live under `src/test/kotlin/app/planer/server/unit/` and mirror the main package structure.
+Unit tests exercise a single class or function in isolation, with no database and no HTTP. They live under `src/test/kotlin/app/planer/server/` and mirror the main package structure.
 
 To run all unit tests:
 
@@ -300,7 +304,7 @@ The component under test is held in a field named **`uut`** (*Unit Under Test*).
 
 ### Integration Testing
 
-Integration tests exercise the server through its HTTP layer against a **real Postgres instance** running in a **Testcontainers** container. They live under `src/test/kotlin/app/planer/server/integration/`, grouped by test collection.
+Integration tests exercise the server through its HTTP layer against a **real Postgres instance** running in a **Testcontainers** container. They live under `src/integrationTest/kotlin/app/planer/server/integration/`, grouped by test collection.
 
 To run all integration tests:
 
@@ -308,7 +312,7 @@ To run all integration tests:
 ./gradlew :planer-server:integrationTest
 ```
 
-The supporting infrastructure lives in `src/test/kotlin/app/planer/server/core/`:
+The supporting infrastructure lives in `src/integrationTest/kotlin/app/planer/server/core/`:
 
 - **Test Application** — starts the Ktor app in-process for testing
 - **BaseIntegrationTest** — every integration test extends this; provides the `client` and manages per-test state
@@ -316,7 +320,7 @@ The supporting infrastructure lives in `src/test/kotlin/app/planer/server/core/`
 - **TestAuthHandler** — injects a JWT for tests without hitting the login endpoint
 - **ITestData** — an interface for seeding datasets
 
-Each test collection is backed by its own Postgres container, shared across the test classes in it. The **Resetter** wipes the tables between test methods so tests remain isolated.
+Each test collection (an abstract base class owning a container and a dataset) is backed by its own Postgres container, shared across the test classes in it. The **Resetter** wipes the tables between test methods so tests remain isolated.
 
 For the full picture — including how to write a collection, seed data, and assert with the client — see [Testing — Server](../.docs/testing/Testing.Server.md).
 
