@@ -66,8 +66,8 @@ The `Arrange / Act / Assert` pattern makes the intent of a test obvious at a gla
 ### Fixtures and Fakes
 
 - **No mocking frameworks.** Hand-written fakes are simpler to read and debug. A `FakePasswordHasher`, `InMemoryUserRepository`, or `StubClock` is a five-line class.
-- **Fixtures live in the test source set of the module that uses them** (`commonTest` in `planer-core`, `test` in the server and clients). Test fixtures do not live in main source sets — production code should not depend on test code.
-- **Test source sets are not visible to other modules.** If two modules genuinely need the same fixtures, expose them through a Gradle test-fixtures source set or a small dedicated testing module. Do not copy them, and do not assume `commonTest` of `planer-core` is reachable from the clients.
+- **Fixtures live in the test source set of the module that uses them** (`commonTest` in `planer-shared`, `test` in the server and clients). Test fixtures do not live in main source sets — production code should not depend on test code.
+- **Test source sets are not visible to other modules.** If two modules genuinely need the same fixtures, expose them through a Gradle test-fixtures source set or a small dedicated testing module. Do not copy them, and do not assume `commonTest` of `planer-shared` is reachable from the clients.
 - **Each test is independent.** A test must not rely on state left behind by another. Database state is reset between methods; in-memory state is recreated in the test class constructor.
 
 ## Where to Go Next

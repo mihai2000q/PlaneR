@@ -20,7 +20,7 @@ The expected labels to use are:
 
 ### Module
 
-- **core** if the shared core module is the topic of the issue
+- **shared** if the shared module is the topic of the issue
 - **server** if the server is the topic of the issue
 - **desktop** if the desktop is the topic of the issue
 - **android** if the Android client is the topic of the issue
@@ -57,7 +57,7 @@ Every branch name starts with the **module**, then the **type**, then the
 
 ### Module
 
-- **core**
+- **shared**
 - **server**
 - **desktop**
 - **android**

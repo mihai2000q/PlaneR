@@ -16,7 +16,7 @@
   - [Abstract](#abstract)
   - [Prerequisites](#prerequisites)
   - [Get Started](#get-started)
-    - [Core](#core)
+    - [Shared](#shared)
     - [Server](#server)
     - [Desktop](#desktop)
     - [Android](#android)
@@ -29,12 +29,12 @@
 
 The project is divided into four modules:
 
-- **Core** — The shared KMP library containing domain models, DTOs, validation logic, and the networking client. It contains no UI code.
+- **Shared** — The shared KMP library containing domain models, DTOs, validation logic, and the networking client. It contains no UI code.
 - **Server** — A RESTful API built with **Ktor**, responsible for data persistence, authentication, and business logic.
 - **Desktop** — A desktop application built with **Compose for Desktop**, targeting Windows, macOS, and Linux.
 - **Android** — The mobile application built with **Jetpack Compose**, targeting Android. iOS support is planned as a future sibling module (native, with its own UI).
 
-Desktop and Android do **not** share screens or view models. They share the toolkit family (Compose) by choice, not by architecture — each client owns its UI, and either could move to a different toolkit without touching the other or **Core**.
+Desktop and Android do **not** share screens or view models. They share the toolkit family (Compose) by choice, not by architecture — each client owns its UI, and either could move to a different toolkit without touching the other or **Shared**.
 
 ## Prerequisites
 
@@ -60,13 +60,13 @@ Otherwise, follow the setup of each module below (only one of Desktop or Android
 
 Additionally, if you prefer to run everything in containers and not install JDK or Gradle, you can run the `run-container.sh` script to run all the Docker containers and apply the database migrations.
 
-### Core
+### Shared
 
 This is the shared library module. It contains the domain models, DTOs, validation rules, and the networking client. It has no UI.
 
-Core is not a runnable application on its own — it exists to be consumed by the Desktop and Android clients. The Server depends on it only for the models, DTOs, and validation rules.
+Shared is not a runnable application on its own — it exists to be consumed by the Desktop and Android clients. The Server depends on it only for the models, DTOs, and validation rules.
 
-For a detailed setup, check out the [documentation](planer-core/README.md).
+For a detailed setup, check out the [documentation](planer-shared/README.md).
 
 ### Server
 
@@ -84,7 +84,7 @@ For a detailed setup on the desktop platform, check out the [documentation](plan
 
 ### Android
 
-This is the Android application, which is written in Kotlin using **Jetpack Compose**. It is the current mobile target. An iOS application is planned as a future sibling module that will reuse the same **Core** code.
+This is the Android application, which is written in Kotlin using **Jetpack Compose**. It is the current mobile target. An iOS application is planned as a future sibling module that will reuse the same **Shared** code.
 
 For a detailed setup on the Android platform, check out the [documentation](planer-android/README.md).
 

@@ -1,6 +1,6 @@
-# PlaneR Core
+# PlaneR Shared
 
-- [PlaneR Core](#planer-core)
+- [PlaneR Shared](#planer-shared)
     - [Abstract](#abstract)
     - [Prerequisites](#prerequisites)
         - [Kotlin and JDK](#kotlin-and-jdk)
@@ -14,8 +14,8 @@
         - [Validation](#validation)
         - [Network](#network)
         - [Token Storage](#token-storage)
-    - [What Core Does Not Contain](#what-core-does-not-contain)
-    - [Consuming Core](#consuming-core)
+    - [What Shared Does Not Contain](#what-shared-does-not-contain)
+    - [Consuming Shared](#consuming-shared)
     - [Testing](#testing)
 
 ## Abstract
@@ -26,7 +26,7 @@ It is not a runnable application — it exists to be consumed by the [Server](..
 
 The goal is a single source of truth for what an `Event`, a `Task`, or a `RecurrenceRule` looks like, so that changes to the contract only need to be made once.
 
-Core contains **no UI**. Desktop and Android are native applications that each own their screens and view models.
+Shared contains **no UI**. Desktop and Android are native applications that each own their screens and view models.
 
 ## Prerequisites
 
@@ -49,13 +49,13 @@ To get started on contributing to this module, you can do so by following the ne
 To restore the dependencies, type the following command in the terminal from the **root** of the repository:
 
 ```sh
-./gradlew :planer-core:build
+./gradlew :planer-shared:build
 ```
 
 Alternatively, if you only want to download the dependencies without building:
 
 ```sh
-./gradlew :planer-core:dependencies
+./gradlew :planer-shared:dependencies
 ```
 
 ### Build
@@ -63,21 +63,21 @@ Alternatively, if you only want to download the dependencies without building:
 To compile the module for all its targets (JVM, Android, and later iOS):
 
 ```sh
-./gradlew :planer-core:assemble
+./gradlew :planer-shared:assemble
 ```
 
 To build only for the JVM target:
 
 ```sh
-./gradlew :planer-core:jvmJar
+./gradlew :planer-shared:jvmJar
 ```
 
 ### Typecheck
 
-Because **Core** is a library, it cannot be run standalone. To verify that the code compiles without running any tests, use the build task above, or run:
+Because **Shared** is a library, it cannot be run standalone. To verify that the code compiles without running any tests, use the build task above, or run:
 
 ```sh
-./gradlew :planer-core:compileKotlinJvm
+./gradlew :planer-shared:compileKotlinJvm
 ```
 
 ## Structure
@@ -85,12 +85,12 @@ Because **Core** is a library, it cannot be run standalone. To verify that the c
 The module follows the standard KMP layout, with `commonMain` holding the bulk of the code and platform-specific source sets only for `expect`/`actual` implementations.
 
 ```
-planer-core/
+planer-shared/
 ├── README.md
 ├── build.gradle.kts
 └── src/
     ├── commonMain/
-    │   └── kotlin/app/planer/core/
+    │   └── kotlin/app/planer/shared/
     │       ├── domain/
     │       ├── dto/
     │       ├── validation/
@@ -146,9 +146,9 @@ The `ApiClient` itself is responsible for:
 
 ### Token Storage
 
-Core defines a `TokenStorage` interface; it does not implement it. Where a refresh token can be kept safely is platform-specific, so Android provides a Keystore-backed implementation and Desktop provides an OS-keychain-backed one. `ApiClient` receives the implementation at construction.
+Shared defines a `TokenStorage` interface; it does not implement it. Where a refresh token can be kept safely is platform-specific, so Android provides a Keystore-backed implementation and Desktop provides an OS-keychain-backed one. `ApiClient` receives the implementation at construction.
 
-## What Core Does Not Contain
+## What Shared Does Not Contain
 
 - **No UI.** No composables, no screens, no navigation, no theme.
 - **No view models or state holders.** Each client writes its own.
@@ -156,15 +156,15 @@ Core defines a `TokenStorage` interface; it does not implement it. Where a refre
 
 If a piece of code needs a UI toolkit type, it belongs in `planer-desktop` or `planer-android`.
 
-## Consuming Core
+## Consuming Shared
 
-The other modules depend on **Core** in their `build.gradle.kts`:
+The other modules depend on **Shared** in their `build.gradle.kts`:
 
 **Server**
 
 ```kotlin
 dependencies {
-    implementation(project(":planer-core"))
+    implementation(project(":planer-shared"))
 }
 ```
 
@@ -172,7 +172,7 @@ dependencies {
 
 ```kotlin
 dependencies {
-    implementation(project(":planer-core"))
+    implementation(project(":planer-shared"))
 }
 ```
 
@@ -180,11 +180,11 @@ dependencies {
 
 ```kotlin
 dependencies {
-    implementation(project(":planer-core"))
+    implementation(project(":planer-shared"))
 }
 ```
 
-Because planer-core is a KMP module, it automatically publishes the correct target artifact to each consumer — the JVM variant to Server and Desktop, and the Android variant to the Android client.
+Because planer-shared is a KMP module, it automatically publishes the correct target artifact to each consumer — the JVM variant to Server and Desktop, and the Android variant to the Android client.
 
 The Server uses only the models, DTOs, and validation rules. It does not call the networking client, although the client library ends up on its classpath.
 
@@ -195,16 +195,16 @@ Unit tests live in `commonTest` and run on every target. They follow the convent
 To run them for the JVM target only (fastest during development):
 
 ```sh
-./gradlew :planer-core:jvmTest
+./gradlew :planer-shared:jvmTest
 ```
 
 To run them for all targets:
 
 ```sh
-./gradlew :planer-core:allTests
+./gradlew :planer-shared:allTests
 ```
 
 Test fixtures such as fake token storage, in-memory fakes, and DTO builders live under
-`commonTest/kotlin/app/planer/core/testutil/` and are reused by tests **within this module**.
+`commonTest/kotlin/app/planer/shared/testutil/` and are reused by tests **within this module**.
 
 Source sets named `commonTest` are not visible to other modules. If the server or a client needs the same fixtures, expose them as a Gradle **test fixtures** source set or a small dedicated testing module rather than copying them. Until that need appears, each module keeps its own fixtures.

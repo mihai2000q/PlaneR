@@ -50,7 +50,7 @@ Verification uses the library's constant-time comparison. Stored hashes carry th
 - **No composition rules.** Requiring a letter and a digit pushes users toward predictable patterns without making passwords meaningfully harder to guess; length matters more.
 - **Common-password check.** Passwords found in a bundled list of the most common passwords are rejected.
 
-The same policy applies at registration, password change, and password reset. The rules live in `planer-core` so clients can give immediate feedback; the server is the source of truth.
+The same policy applies at registration, password change, and password reset. The rules live in `planer-shared` so clients can give immediate feedback; the server is the source of truth.
 
 ### Access Tokens
 
@@ -199,7 +199,7 @@ The access token lives in memory only. The **refresh token** is the long-lived c
 | Android | Android Keystore–backed encrypted storage |
 | Desktop | The operating system's credential store (Windows Credential Manager, macOS Keychain, Linux Secret Service) |
 
-Core defines a `TokenStorage` interface and each client provides the implementation (see [Architecture](../architecture/Architecture.md)). Tokens are never written to plain files, logs, or crash reports. On logout, or when a refresh fails, the stored token is deleted.
+Shared defines a `TokenStorage` interface and each client provides the implementation (see [Architecture](../architecture/Architecture.md)). Tokens are never written to plain files, logs, or crash reports. On logout, or when a refresh fails, the stored token is deleted.
 
 ## Transport Security
 
@@ -221,7 +221,7 @@ PlaneR's API returns only JSON to native clients, so browser-oriented headers su
 
 Every incoming request is validated before any database interaction occurs. Invalid requests are rejected with a `400` (`VALIDATION_ERROR` or `BAD_REQUEST`) and a structured error body (see [Error Handling](../architecture/Error-Handling.md)).
 
-Validation rules live in `planer-core` and are used on both client and server, so the same rule applies everywhere. The server always re-validates, regardless of what the client sent — the client check exists for UX, not security.
+Validation rules live in `planer-shared` and are used on both client and server, so the same rule applies everywhere. The server always re-validates, regardless of what the client sent — the client check exists for UX, not security.
 
 All database access uses **parameterised statements**, eliminating SQL injection without requiring manual escaping.
 

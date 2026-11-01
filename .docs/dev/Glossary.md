@@ -84,7 +84,7 @@ The number of events and tasks assigned to a calendar. Powers the small number b
 ## Technical
 
 **KMP**
-Kotlin Multiplatform. The mechanism that lets the same Kotlin code compile to JVM, Android, and iOS targets. The **Core** module is the only KMP module.
+Kotlin Multiplatform. The mechanism that lets the same Kotlin code compile to JVM, Android, and iOS targets. The **Shared** module is the only KMP module.
 
 **Jetpack Compose**
 Android's declarative UI toolkit. Used by the Android client.
@@ -95,8 +95,8 @@ The JVM desktop flavour of Compose. Used by the Desktop client. It uses the same
 **Native client**
 A client whose UI is written specifically for its platform. PlaneR's Desktop and Android clients are native in this sense; each owns its screens, navigation, and view models.
 
-**Core**
-The shared library module (`planer-core`). Contains domain models, DTOs, validation, and the networking client. Has no UI. The clients depend on all of it; the server depends only on the models, DTOs, and validation.
+**Shared**
+The shared library module (`planer-shared`). Contains domain models, DTOs, validation, and the networking client. Has no UI. The clients depend on all of it; the server depends only on the models, DTOs, and validation.
 
 **Forced Update**
 The mechanism by which the server refuses requests from client versions below a configured minimum, answering `426 Upgrade Required`. Clients announce their version with the `X-Client-Version` and `X-Client-Platform` headers.

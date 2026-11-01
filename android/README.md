@@ -21,9 +21,9 @@
 
 This is the Android client of **PlaneR**, written in Kotlin using **Jetpack Compose**.
 
-This is a native client: it owns its entire UI — screens, components, navigation, and view models. It consumes the models, DTOs, validation rules, and networking client from [`planer-core`](../planer-core/README.md), which contains no UI. The desktop client has its own, separate UI.
+This is a native client: it owns its entire UI — screens, components, navigation, and view models. It consumes the models, DTOs, validation rules, and networking client from [`planer-shared`](../planer-shared/README.md), which contains no UI. The desktop client has its own, separate UI.
 
-iOS is planned as a future sibling module (`planer-ios`) that will also depend on `planer-core`, with a native UI of its own. Adding it will not change this module.
+iOS is planned as a future sibling module (`planer-ios`) that will also depend on `planer-shared`, with a native UI of its own. Adding it will not change this module.
 
 ## Prerequisites
 
@@ -128,7 +128,7 @@ The resulting AAB will be located in `planer-android/build/outputs/bundle/releas
 
 ## Architecture
 
-The Android module is a complete native client. It uses the **core** module for the contract with the server and provides everything the user sees.
+The Android module is a complete native client. It uses the **shared** module for the contract with the server and provides everything the user sees.
 
 The main responsibilities of this module are:
 
@@ -140,7 +140,7 @@ The main responsibilities of this module are:
 - **Android manifest** — declared permissions, activities, and services
 - **Packaging** — Gradle configuration for building APK and AAB artifacts
 
-Business rules do not live here: recurrence, routine layout, and ownership are the server's job, and validation rules come from [`planer-core`](../planer-core/README.md). Screens are **not** shared with the [desktop](../planer-desktop/README.md) application; a screen that exists on both is implemented on both.
+Business rules do not live here: recurrence, routine layout, and ownership are the server's job, and validation rules come from [`planer-shared`](../planer-shared/README.md). Screens are **not** shared with the [desktop](../planer-desktop/README.md) application; a screen that exists on both is implemented on both.
 
 For more details, check out the [Architecture documentation](../.docs/architecture/Architecture.md).
 
@@ -148,7 +148,7 @@ For more details, check out the [Architecture documentation](../.docs/architectu
 
 ### Unit Testing
 
-Unit tests for the shared contract live in `planer-core`. This module contains tests for the Android UI and view models.
+Unit tests for the shared contract live in `planer-shared`. This module contains tests for the Android UI and view models.
 
 To run the tests for the Android module specifically:
 

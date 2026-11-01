@@ -200,7 +200,7 @@ The exact package layout inside `service/`, `repository/`, and `database/` is no
 
 ## Architecture
 
-PlaneR follows a **client–server** architecture with a shared **Kotlin Multiplatform** core module (models, DTOs, validation, API client — no UI). The server's role is well-defined even though its internal structure is still being decided:
+PlaneR follows a **client–server** architecture with a shared **Kotlin Multiplatform** module (models, DTOs, validation, API client — no UI). The server's role is well-defined even though its internal structure is still being decided:
 
 **Responsibilities**
 

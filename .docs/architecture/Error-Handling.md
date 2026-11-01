@@ -127,7 +127,7 @@ so the behaviour is correct if sharing is ever added.
 
 ## Client Side
 
-The `ApiClient` in `planer-core` deserializes every failure into an `ApiError`
+The `ApiClient` in `planer-shared` deserializes every failure into an `ApiError`
 value:
 
 ```kotlin
@@ -174,7 +174,7 @@ Two errors are handled **inside `ApiClient`** and never reach individual screens
 
 The mapping from HTTP status and `code` to `ApiError` is centralized so that
 individual screens do not repeat the logic. Turning an `ApiError` into text and
-widgets is each client's job; `planer-core` has no UI.
+widgets is each client's job; `planer-shared` has no UI.
 
 ## Conventions
 

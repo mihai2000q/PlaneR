@@ -91,7 +91,7 @@ A local notification on the client at an event's `routineStartAt` ("Time to star
 
 - **Desktop** client for Windows, macOS, and Linux (Compose for Desktop)
 - **Android** client for Android (Jetpack Compose)
-- **Shared contract** — both clients use the same models, DTOs, validation, and API client from `planer-core`
+- **Shared contract** — both clients use the same models, DTOs, validation, and API client from `planer-shared`
 - **Forced update** — the server can require a minimum client version; older clients are asked to update
 
 ### Search
@@ -108,7 +108,7 @@ They may return in a future version.
 - **Attachments** — would require a storage layer for files and images
 - **Daily check-in** — the "Energy Level Today" widget from early mockups
 - **Offline mode** — a local cache so the app works without a network connection
-- **iOS support** — a native SwiftUI client consuming `planer-core`
+- **iOS support** — a native SwiftUI client consuming `planer-shared`
 - **Export / import** — iCal or CSV interchange with other calendar apps
 
 ## Explicitly Out of Scope

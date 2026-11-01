@@ -7,7 +7,7 @@ documented as they are settled.
 
 - [Overview](#overview)
 - [Modules](#modules)
-- [The Core Module](#the-core-module)
+- [The Shared Module](#the-shared-module)
 - [Client Applications](#client-applications)
 - [Server](#server)
 - [Communication Between Client and Server](#communication-between-client-and-server)
@@ -21,7 +21,7 @@ PlaneR is a personal time-planning application. It follows a **client–server**
 
 - A **Ktor server** owns the data and the business rules.
 - **Desktop** and **Android** clients are native applications. Each renders its own UI and talks to the server over HTTP.
-- A shared **core** module holds the non-visual code that both clients (and, partly, the server) can reuse: domain models, DTOs, validation, and the networking client.
+- A **shared** module holds the non-visual code that both clients (and, partly, the server) can reuse: domain models, DTOs, validation, and the networking client.
 
 The system has three properties that drive most of the architecture:
 
@@ -31,30 +31,30 @@ The system has three properties that drive most of the architecture:
 
 ## Modules
 
-The repository is a multi-module **Gradle** build with four modules. Only `planer-core` is a **Kotlin Multiplatform** module; the others are plain JVM or Android modules.
+The repository is a multi-module **Gradle** build with four modules. Only `planer-shared` is a **Kotlin Multiplatform** module; the others are plain JVM or Android modules.
 
 | Module | Platform | Purpose |
 |---|---|---|
-| `planer-core` | KMP (JVM, Android; iOS later) | Domain models, DTOs, validation, networking client. No UI. |
+| `planer-shared` | KMP (JVM, Android; iOS later) | Domain models, DTOs, validation, networking client. No UI. |
 | `planer-server` | JVM | Ktor HTTP server, persistence, authentication |
 | `planer-desktop` | JVM | Desktop application: UI (Compose for Desktop), view models, packaging |
 | `planer-android` | Android | Android application: UI (Jetpack Compose), view models, packaging |
 
 A dependency rule holds throughout:
 
-- **`planer-core`** depends on nothing else in the repository. It is the foundation.
-- **`planer-server`** depends on `planer-core` for the shared domain models, DTOs, and validation rules. It does not use the networking client.
-- **`planer-desktop`** and **`planer-android`** depend on `planer-core`. They do **not** depend on each other, and they do **not** depend on `planer-server`.
+- **`planer-shared`** depends on nothing else in the repository. It is the foundation.
+- **`planer-server`** depends on `planer-shared` for the shared domain models, DTOs, and validation rules. It does not use the networking client.
+- **`planer-desktop`** and **`planer-android`** depend on `planer-shared`. They do **not** depend on each other, and they do **not** depend on `planer-server`.
 
-In other words: everything depends on `planer-core`, nothing depends on `planer-server` except the deployment pipeline.
+In other words: everything depends on `planer-shared`, nothing depends on `planer-server` except the deployment pipeline.
 
-Because `planer-core` also contains the networking client, the server's dependency graph includes the Ktor client library even though it never calls it. This is accepted for now; if it becomes a nuisance, the client can be split out into its own module without changing anything else.
+Because `planer-shared` also contains the networking client, the server's dependency graph includes the Ktor client library even though it never calls it. This is accepted for now; if it becomes a nuisance, the client can be split out into its own module without changing anything else.
 
-If iOS is added in the future, it becomes a fifth module (`planer-ios`) that depends on `planer-core` like the other clients, with a native UI of its own. It does not touch `planer-android` or `planer-desktop`.
+If iOS is added in the future, it becomes a fifth module (`planer-ios`) that depends on `planer-shared` like the other clients, with a native UI of its own. It does not touch `planer-android` or `planer-desktop`.
 
-## The Core Module
+## The Shared Module
 
-`planer-core` is the shared contract between the server and the clients. It contains:
+`planer-shared` is the shared contract between the server and the clients. It contains:
 
 ### Domain models
 
@@ -63,7 +63,7 @@ The shapes described in [Domain](../domain/Domain.md) — `User`, `Calendar`, `E
 ### DTOs
 
 Request and response bodies for the API described in [Api](../api/Api.md), serialized with kotlinx.serialization.
-Keeping them in `planer-core` means both client and server compile against the same wire contract. DTOs are separate from the domain models: the wire format includes fields the domain does not (for example `occurrenceDate` on expanded recurring events), and the two are allowed to diverge.
+Keeping them in `planer-shared` means both client and server compile against the same wire contract. DTOs are separate from the domain models: the wire format includes fields the domain does not (for example `occurrenceDate` on expanded recurring events), and the two are allowed to diverge.
 
 ### Validation
 
@@ -78,15 +78,15 @@ A thin HTTP client that both clients use to talk to the server. It wraps the end
 - maps non-2xx responses to a shared `ApiError` type (see [Error Handling](Error-Handling.md))
 - signals `UPGRADE_REQUIRED` so the app can show its forced-update screen
 
-Token *storage* is not part of the client: it is platform-specific (Android Keystore, the desktop OS keychain) and is provided by each app through an interface that `planer-core` defines.
+Token *storage* is not part of the client: it is platform-specific (Android Keystore, the desktop OS keychain) and is provided by each app through an interface that `planer-shared` defines.
 
-### What Core does not contain
+### What Shared does not contain
 
-**No UI and no view models.** Screens, components, navigation, state holders, and anything that depends on a UI toolkit live in the client modules. This is deliberate: it keeps `planer-core` usable from the server, and it lets each client change its UI without touching the other.
+**No UI and no view models.** Screens, components, navigation, state holders, and anything that depends on a UI toolkit live in the client modules. This is deliberate: it keeps `planer-shared` usable from the server, and it lets each client change its UI without touching the other.
 
 ## Client Applications
 
-Each client owns its entire UI layer. The two clients are structurally similar but share no UI code; where a screen exists on both, it is implemented twice, against the same `planer-core` contract.
+Each client owns its entire UI layer. The two clients are structurally similar but share no UI code; where a screen exists on both, it is implemented twice, against the same `planer-shared` contract.
 
 ### Desktop
 
@@ -110,7 +110,7 @@ An Android application built with **Jetpack Compose**. It provides:
 
 ### iOS (planned)
 
-If iOS support is added, it becomes a **sibling module** (`planer-ios`) with a native UI (SwiftUI) that consumes `planer-core` through Kotlin Multiplatform's iOS target. `planer-core` would gain an `iosMain` source set for any `expect`/`actual` implementations it needs. `planer-android` and `planer-desktop` would not change.
+If iOS support is added, it becomes a **sibling module** (`planer-ios`) with a native UI (SwiftUI) that consumes `planer-shared` through Kotlin Multiplatform's iOS target. `planer-shared` would gain an `iosMain` source set for any `expect`/`actual` implementations it needs. `planer-android` and `planer-desktop` would not change.
 
 ## Server
 
@@ -170,13 +170,13 @@ This is noted here only to explain why the domain model already carries `updated
 |---|---|
 | **Authentication** | Server. Issues and validates JWTs. |
 | **Authorization** | Server. Every query is scoped by the token's `sub` claim. |
-| **Validation** | Both. `planer-core` provides the rules; server re-validates as the source of truth. |
-| **Error handling** | Server catches and shapes errors; `planer-core` maps them to a typed `ApiError`; each client turns that into UI. |
-| **Forced updates** | Server enforces the minimum client version; `planer-core` surfaces `UPGRADE_REQUIRED`; each client shows the blocking update screen. |
+| **Validation** | Both. `planer-shared` provides the rules; server re-validates as the source of truth. |
+| **Error handling** | Server catches and shapes errors; `planer-shared` maps them to a typed `ApiError`; each client turns that into UI. |
+| **Forced updates** | Server enforces the minimum client version; `planer-shared` surfaces `UPGRADE_REQUIRED`; each client shows the blocking update screen. |
 | **Timezones** | `User.timezone` defines "today" and the default for new items; each item's own `timeZone` anchors its recurrence. The client sends UTC instants; the server never assumes a timezone. |
-| **Recurrence** | Server expands rules into occurrences. `planer-core` never re-implements the expansion. |
+| **Recurrence** | Server expands rules into occurrences. `planer-shared` never re-implements the expansion. |
 | **Routines** | Server computes `routineStartAt` and per-step times. Clients render them. |
-| **Token storage** | Each client, using the platform's secure storage behind an interface defined in `planer-core`. |
+| **Token storage** | Each client, using the platform's secure storage behind an interface defined in `planer-shared`. |
 | **Localization** | Not in v1. The UI is English-only. |
 
 ## Open Questions
