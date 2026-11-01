@@ -21,15 +21,15 @@ GET {{host}}/api/search?q=standup&type=all&from=2025-07-01&to=2025-12-31&page=0&
 
 **Query parameters**
 
-| Param | Required | Notes |
-|---|---|---|
-| `q` | yes | The search query, min 2 characters |
-| `type` | no | `event` \| `task` \| `all`; default `all` |
-| `calendarIds` | no | Comma-separated list to scope the search |
-| `from` | no | Filter to events/tasks on or after this date |
-| `to` | no | Filter to events/tasks on or before this date |
-| `page` | no | Default `0` |
-| `size` | no | Default `20`, max `50` |
+| Param         | Required | Notes                                         |
+|---------------|----------|-----------------------------------------------|
+| `q`           | yes      | The search query, min 2 characters            |
+| `type`        | no       | `event` \| `task` \| `all`; default `all`     |
+| `calendarIds` | no       | Comma-separated list to scope the search      |
+| `from`        | no       | Filter to events/tasks on or after this date  |
+| `to`          | no       | Filter to events/tasks on or before this date |
+| `page`        | no       | Default `0`                                   |
+| `size`        | no       | Default `20`, max `50`                        |
 
 **Response**
 

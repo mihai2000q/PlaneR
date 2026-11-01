@@ -42,19 +42,20 @@ sample-data/
 └── 07-recurrence-exceptions.sql
 ```
 
-Files are numbered so they run in dependency order
-(users → calendars → events → tasks → preparation steps → task completions → recurrence exceptions).
+Files are numbered so they run in dependency order (users → calendars → events → tasks → preparation steps → task
+completions → recurrence exceptions).
 
 Each file uses `INSERT ... ON CONFLICT DO NOTHING` so it is safe to re-run.
 
 ### Seeded users
 
-The end-to-end UI tests sign in as these users (see [Testing — Desktop](../testing/Testing.Desktop.md#utils)), so their credentials are part of the contract. They are for development only and must never exist in production.
+The end-to-end UI tests sign in as these users (see [Testing — Desktop](../testing/Testing.Desktop.md#utils)), so their
+credentials are part of the contract. They are for development only and must never exist in production.
 
-| User | Email | Password | Notes |
-|---|---|---|---|
-| Alex Morgan | `alex@example.com` | `Password123!` | The main user, with the populated calendar, streak, and tasks. Email verified. |
-| Sam Lee | `sam@example.com` | `Password123!` | A second user, with a few items, for checking that ownership is enforced (Alex must never see Sam's data). |
+| User        | Email              | Password       | Notes                                                                                                      |
+|-------------|--------------------|----------------|------------------------------------------------------------------------------------------------------------|
+| Alex Morgan | `alex@example.com` | `Password123!` | The main user, with the populated calendar, streak, and tasks. Email verified.                             |
+| Sam Lee     | `sam@example.com`  | `Password123!` | A second user, with a few items, for checking that ownership is enforced (Alex must never see Sam's data). |
 
 The password hashes in `01-users.sql` are BCrypt hashes of the password above, generated once and committed.
 

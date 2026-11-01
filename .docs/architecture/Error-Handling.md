@@ -39,32 +39,32 @@ Every error response uses the same JSON body:
 }
 ```
 
-| Field | Type | Notes |
-|---|---|---|
-| `status` | int | HTTP status code, repeated in the body for convenience |
-| `code` | string | Machine-readable identifier (see below) |
-| `message` | string | Human-readable summary, safe to display |
-| `errors` | object? | Present only with `VALIDATION_ERROR`; maps field name to a list of messages |
+| Field     | Type    | Notes                                                                       |
+|-----------|---------|-----------------------------------------------------------------------------|
+| `status`  | int     | HTTP status code, repeated in the body for convenience                      |
+| `code`    | string  | Machine-readable identifier (see below)                                     |
+| `message` | string  | Human-readable summary, safe to display                                     |
+| `errors`  | object? | Present only with `VALIDATION_ERROR`; maps field name to a list of messages |
 
 ## Error Codes
 
 This is the canonical list. [Api](../api/Api.md#error-format) carries the same table;
 if the two ever differ, this is a bug in the docs.
 
-| Code | Status | Meaning |
-|---|---|---|
-| `VALIDATION_ERROR` | 400 | Well-formed request whose field values failed validation. Includes `errors`. |
-| `BAD_REQUEST` | 400 | Malformed request: invalid JSON, wrong types, missing or invalid headers |
-| `TOKEN_INVALID` | 400 | A verification or reset token is malformed, already used, or does not match |
-| `TOKEN_EXPIRED` | 400 | A verification or reset token has expired |
-| `UNAUTHORIZED` | 401 | Missing, expired, or invalid access token |
-| `INVALID_CREDENTIALS` | 401 | Wrong email/password at login, or wrong current password when confirming a sensitive action |
-| `FORBIDDEN` | 403 | Token valid, but the account state does not allow the action (e.g., unverified) |
-| `NOT_FOUND` | 404 | Resource does not exist or is not owned by the user |
-| `CONFLICT` | 409 | Unique constraint violated (e.g., duplicate email) or a state-based conflict |
-| `UPGRADE_REQUIRED` | 426 | The client version is below the server's minimum |
-| `RATE_LIMITED` | 429 | Too many requests. Response carries a `Retry-After` header. |
-| `INTERNAL_ERROR` | 500 | Unhandled server error |
+| Code                  | Status | Meaning                                                                                     |
+|-----------------------|--------|---------------------------------------------------------------------------------------------|
+| `VALIDATION_ERROR`    | 400    | Well-formed request whose field values failed validation. Includes `errors`.                |
+| `BAD_REQUEST`         | 400    | Malformed request: invalid JSON, wrong types, missing or invalid headers                    |
+| `TOKEN_INVALID`       | 400    | A verification or reset token is malformed, already used, or does not match                 |
+| `TOKEN_EXPIRED`       | 400    | A verification or reset token has expired                                                   |
+| `UNAUTHORIZED`        | 401    | Missing, expired, or invalid access token                                                   |
+| `INVALID_CREDENTIALS` | 401    | Wrong email/password at login, or wrong current password when confirming a sensitive action |
+| `FORBIDDEN`           | 403    | Token valid, but the account state does not allow the action (e.g., unverified)             |
+| `NOT_FOUND`           | 404    | Resource does not exist or is not owned by the user                                         |
+| `CONFLICT`            | 409    | Unique constraint violated (e.g., duplicate email) or a state-based conflict                |
+| `UPGRADE_REQUIRED`    | 426    | The client version is below the server's minimum                                            |
+| `RATE_LIMITED`        | 429    | Too many requests. Response carries a `Retry-After` header.                                 |
+| `INTERNAL_ERROR`      | 500    | Unhandled server error                                                                      |
 
 Codes are strings rather than HTTP statuses alone because the client often needs
 to distinguish between different causes of the same status. For example, both
@@ -179,7 +179,12 @@ widgets is each client's job; `planer-shared` has no UI.
 ## Conventions
 
 - **Never send stack traces to the client.** Log them server-side; return a neutral message.
-- **Never trust the client.** Even if the client validates an input, the server re-validates. The client-side check exists for UX, not security.
-- **Field names in `errors` match the request body.** If the request uses `displayName`, the error key is `displayName`, not `display_name` or `name`.
-- **`message` is display-safe.** Assume it will be shown to the user verbatim, even though the UI often prefers its own copy.
-- **Add a new `code` when a new failure mode is genuinely distinct.** Do not overload existing codes with different meanings — the client cannot distinguish them. Adding a code also means adding it to the table here, to [Api](../api/Api.md#error-format), and to `ApiError`.
+- **Never trust the client.** Even if the client validates an input, the server re-validates. The client-side check
+  exists for UX, not security.
+- **Field names in `errors` match the request body.** If the request uses `displayName`, the error key is `displayName`,
+  not `display_name` or `name`.
+- **`message` is display-safe.** Assume it will be shown to the user verbatim, even though the UI often prefers its own
+  copy.
+- **Add a new `code` when a new failure mode is genuinely distinct.** Do not overload existing codes with different
+  meanings — the client cannot distinguish them. Adding a code also means adding it to the table here,
+  to [Api](../api/Api.md#error-format), and to `ApiError`.

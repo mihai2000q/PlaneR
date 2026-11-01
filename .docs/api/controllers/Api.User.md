@@ -57,11 +57,11 @@ PATCH {{host}}/api/users/me
 }
 ```
 
-| Field | Required | Notes |
-|---|---|---|
-| `displayName` | no | 1–60 chars |
-| `avatarUrl` | no | An `https` URL up to 500 chars, or `null` to clear. PlaneR does not host avatars; the URL points to an image elsewhere. |
-| `timezone` | no | Valid IANA identifier |
+| Field         | Required | Notes                                                                                                                   |
+|---------------|----------|-------------------------------------------------------------------------------------------------------------------------|
+| `displayName` | no       | 1–60 chars                                                                                                              |
+| `avatarUrl`   | no       | An `https` URL up to 500 chars, or `null` to clear. PlaneR does not host avatars; the URL points to an image elsewhere. |
+| `timezone`    | no       | Valid IANA identifier                                                                                                   |
 
 **Response**
 
@@ -97,10 +97,10 @@ PUT {{host}}/api/users/me/email
 }
 ```
 
-| Field | Required | Notes |
-|---|---|---|
-| `newEmail` | yes | Valid email, unique, different from current |
-| `currentPassword` | yes | Confirms the user's identity |
+| Field             | Required | Notes                                       |
+|-------------------|----------|---------------------------------------------|
+| `newEmail`        | yes      | Valid email, unique, different from current |
+| `currentPassword` | yes      | Confirms the user's identity                |
 
 Calling this again while a change is pending replaces the pending address and
 invalidates the earlier link.
@@ -197,7 +197,8 @@ All refresh tokens except the current session's are revoked, so other devices ar
 **Errors**
 
 - `401 INVALID_CREDENTIALS` if `currentPassword` is incorrect
-- `400 VALIDATION_ERROR` if `newPassword` does not meet the [password policy](../../security/Security.md#password-policy)
+- `400 VALIDATION_ERROR` if `newPassword` does not meet
+  the [password policy](../../security/Security.md#password-policy)
 
 ---
 

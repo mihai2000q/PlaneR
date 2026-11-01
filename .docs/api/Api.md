@@ -14,38 +14,47 @@ All endpoints are prefixed with `/api` and communicate in JSON.
 
 ## Conventions
 
-| Aspect | Value |
-|---|---|
-| Base URL (dev) | `http://localhost:8080/api` |
-| Health endpoint | `http://localhost:8080/health` (no `/api` prefix) |
-| Content type | `application/json` |
-| Auth header | `Authorization: Bearer <token>` |
-| Client headers | `X-Client-Platform: android \| desktop` and `X-Client-Version: <semver>` on every request (see [Versioning and Forced Updates](#versioning-and-forced-updates)) |
-| ID format | UUID v7 (36-character string) |
-| Dates | `yyyy-MM-dd` (e.g., `2025-07-15`). A date used as a range bound or filter is interpreted in the user's timezone. |
-| Timestamps | ISO-8601 UTC (e.g., `2025-07-15T09:00:00Z`) |
-| Timezone | Timestamps are always UTC; the client renders them in `User.timezone` |
+| Aspect          | Value                                                                                                                                                           |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Base URL (dev)  | `http://localhost:8080/api`                                                                                                                                     |
+| Health endpoint | `http://localhost:8080/health` (no `/api` prefix)                                                                                                               |
+| Content type    | `application/json`                                                                                                                                              |
+| Auth header     | `Authorization: Bearer <token>`                                                                                                                                 |
+| Client headers  | `X-Client-Platform: android \| desktop` and `X-Client-Version: <semver>` on every request (see [Versioning and Forced Updates](#versioning-and-forced-updates)) |
+| ID format       | UUID v7 (36-character string)                                                                                                                                   |
+| Dates           | `yyyy-MM-dd` (e.g., `2025-07-15`). A date used as a range bound or filter is interpreted in the user's timezone.                                                |
+| Timestamps      | ISO-8601 UTC (e.g., `2025-07-15T09:00:00Z`)                                                                                                                     |
+| Timezone        | Timestamps are always UTC; the client renders them in `User.timezone`                                                                                           |
 
 Route parameters are written as `{id}`. Query parameters are optional unless marked otherwise.
 
 ### Dates vs Timestamps
 
-- **Dates** are used for values that have no time component: `scheduledFor`, `from`/`to` range filters, and path parameters that address an occurrence.
-- **Timestamps** are used for values that have a moment in time: `startsAt`, `endsAt`, `dueAt`, `createdAt`, `updatedAt`.
+- **Dates** are used for values that have no time component: `scheduledFor`, `from`/`to` range filters, and path
+  parameters that address an occurrence.
+- **Timestamps** are used for values that have a moment in time: `startsAt`, `endsAt`, `dueAt`, `createdAt`,
+  `updatedAt`.
 
 A timestamp always includes the timezone (`Z` for UTC). A date never does.
 
 ### Idempotency
 
-`GET`, `PUT`, `PATCH`, and `DELETE` requests are idempotent — repeating the same request produces the same result. `PATCH` bodies are applied as a **JSON merge patch**: fields present are set, fields absent are left alone, and an explicit `null` clears a nullable field.
+`GET`, `PUT`, `PATCH`, and `DELETE` requests are idempotent — repeating the same request produces the same result.
+`PATCH` bodies are applied as a **JSON merge patch**: fields present are set, fields absent are left alone, and an
+explicit `null` clears a nullable field.
 
-`POST` requests are **not** idempotent. Repeating a `POST` to a creation endpoint will create a second resource. Clients that retry after a network failure must first check whether the original request succeeded.
+`POST` requests are **not** idempotent. Repeating a `POST` to a creation endpoint will create a second resource. Clients
+that retry after a network failure must first check whether the original request succeeded.
 
-The bulk endpoints (`POST /api/tasks/bulk/*`, `POST /api/events/bulk/*`) are `POST`s but their *effects* are naturally repeatable: deleting, completing, scheduling, moving, and reordering produce the same end state when applied twice. The exception is `bulk/shift`, which moves events by a delta and is therefore **not** safe to repeat blindly.
+The bulk endpoints (`POST /api/tasks/bulk/*`, `POST /api/events/bulk/*`) are `POST`s but their *effects* are naturally
+repeatable: deleting, completing, scheduling, moving, and reordering produce the same end state when applied twice. The
+exception is `bulk/shift`, which moves events by a delta and is therefore **not** safe to repeat blindly.
 
 ### Updates
 
-Partial updates use `PATCH`. `PUT` is used only for endpoints that set a specific piece of state (`/complete`, `/schedule`, `/position`, …). Every update that changes an event or task returns the **updated resource**, so the client never has to guess server-computed fields such as `routineStartAt`.
+Partial updates use `PATCH`. `PUT` is used only for endpoints that set a specific piece of state (`/complete`,
+`/schedule`, `/position`, …). Every update that changes an event or task returns the **updated resource**, so the client
+never has to guess server-computed fields such as `routineStartAt`.
 
 ## Health
 
@@ -138,7 +147,8 @@ The following endpoints allow anonymous requests:
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/refresh`
-- `POST /api/auth/logout` (it authenticates by the refresh token in its body, so it works even when the access token has expired)
+- `POST /api/auth/logout` (it authenticates by the refresh token in its body, so it works even when the access token has
+  expired)
 - `POST /api/auth/forgot-password`
 - `POST /api/auth/reset-password`
 - `POST /api/auth/verify-email`
@@ -207,20 +217,20 @@ The `code` field is the source of truth; clients switch on it and never parse
 
 Codes:
 
-| Status | Code | Meaning |
-|---|---|---|
-| 400 | `VALIDATION_ERROR` | Well-formed request, but one or more field values failed validation. Includes `errors`. |
-| 400 | `BAD_REQUEST` | Malformed request: invalid JSON, wrong types, missing or invalid headers |
-| 400 | `TOKEN_INVALID` | A verification or reset token is malformed, already used, or does not match |
-| 400 | `TOKEN_EXPIRED` | A verification or reset token has expired |
-| 401 | `UNAUTHORIZED` | Missing, expired, or invalid access token |
-| 401 | `INVALID_CREDENTIALS` | Wrong email/password at login, or wrong current password when confirming a sensitive action |
-| 403 | `FORBIDDEN` | Account-state failure (unverified, suspended, missing capability) |
-| 404 | `NOT_FOUND` | Resource does not exist or is not owned by the caller |
-| 409 | `CONFLICT` | Unique constraint violated, or a state-based conflict |
-| 426 | `UPGRADE_REQUIRED` | Client version is below the minimum — see [Versioning and Forced Updates](#versioning-and-forced-updates) |
-| 429 | `RATE_LIMITED` | Too many requests — see [Rate Limiting](#rate-limiting). Includes a `Retry-After` header. |
-| 500 | `INTERNAL_ERROR` | Unhandled server error |
+| Status | Code                  | Meaning                                                                                                   |
+|--------|-----------------------|-----------------------------------------------------------------------------------------------------------|
+| 400    | `VALIDATION_ERROR`    | Well-formed request, but one or more field values failed validation. Includes `errors`.                   |
+| 400    | `BAD_REQUEST`         | Malformed request: invalid JSON, wrong types, missing or invalid headers                                  |
+| 400    | `TOKEN_INVALID`       | A verification or reset token is malformed, already used, or does not match                               |
+| 400    | `TOKEN_EXPIRED`       | A verification or reset token has expired                                                                 |
+| 401    | `UNAUTHORIZED`        | Missing, expired, or invalid access token                                                                 |
+| 401    | `INVALID_CREDENTIALS` | Wrong email/password at login, or wrong current password when confirming a sensitive action               |
+| 403    | `FORBIDDEN`           | Account-state failure (unverified, suspended, missing capability)                                         |
+| 404    | `NOT_FOUND`           | Resource does not exist or is not owned by the caller                                                     |
+| 409    | `CONFLICT`            | Unique constraint violated, or a state-based conflict                                                     |
+| 426    | `UPGRADE_REQUIRED`    | Client version is below the minimum — see [Versioning and Forced Updates](#versioning-and-forced-updates) |
+| 429    | `RATE_LIMITED`        | Too many requests — see [Rate Limiting](#rate-limiting). Includes a `Retry-After` header.                 |
+| 500    | `INTERNAL_ERROR`      | Unhandled server error                                                                                    |
 
 Verification and reset tokens are anonymous-endpoint inputs, so their failures use
 `400` rather than `401`: a `401` on those endpoints would look like an expired
@@ -234,14 +244,17 @@ clients map these to behaviour.
 
 Collection endpoints that can return an unbounded number of items use **page-based pagination**.
 
-**Range queries are not paginated.** A calendar or day view needs *every* item in its date range, so `GET /api/events` and `GET /api/tasks?from=…&to=…` return the complete result for the range instead of a page. They are bounded another way: the range may not exceed **366 days** (otherwise `400 VALIDATION_ERROR`), which also bounds the work of expanding recurring items. Their responses are `{ "items": [ ... ] }` without the page fields.
+**Range queries are not paginated.** A calendar or day view needs *every* item in its date range, so `GET /api/events`
+and `GET /api/tasks?from=…&to=…` return the complete result for the range instead of a page. They are bounded another
+way: the range may not exceed **366 days** (otherwise `400 VALIDATION_ERROR`), which also bounds the work of expanding
+recurring items. Their responses are `{ "items": [ ... ] }` without the page fields.
 
 **Request parameters**
 
-| Param | Type | Default | Notes |
-|---|---|---|---|
-| `page` | int | 0 | Zero-based page index |
-| `size` | int | 20 | Items per page, max 100 |
+| Param  | Type | Default | Notes                   |
+|--------|------|---------|-------------------------|
+| `page` | int  | 0       | Zero-based page index   |
+| `size` | int  | 20      | Items per page, max 100 |
 
 **Response envelope**
 

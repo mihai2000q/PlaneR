@@ -46,14 +46,14 @@ GET {{host}}/api/summary
 }
 ```
 
-| Field | Meaning |
-|---|---|
-| `today` | The current date in the user's timezone |
-| `streakDays` | Consecutive days, ending today or yesterday, with at least one completed task. A day with no completion yet today does not break a streak that ran through yesterday. |
-| `todayProgress` | Tasks scheduled for today: how many are completed, out of how many |
-| `overdueCount` | Tasks with `dueAt` in the past that are not completed |
-| `focusNow` | The next upcoming event or scheduled task (`type` is `event` or `task`), or `null` if there is none |
-| `nextRoutine` | The upcoming event whose routine starts next and has not started yet, or `null`. Intended for the "start preparing at 15:30" card. |
+| Field           | Meaning                                                                                                                                                               |
+|-----------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `today`         | The current date in the user's timezone                                                                                                                               |
+| `streakDays`    | Consecutive days, ending today or yesterday, with at least one completed task. A day with no completion yet today does not break a streak that ran through yesterday. |
+| `todayProgress` | Tasks scheduled for today: how many are completed, out of how many                                                                                                    |
+| `overdueCount`  | Tasks with `dueAt` in the past that are not completed                                                                                                                 |
+| `focusNow`      | The next upcoming event or scheduled task (`type` is `event` or `task`), or `null` if there is none                                                                   |
+| `nextRoutine`   | The upcoming event whose routine starts next and has not started yet, or `null`. Intended for the "start preparing at 15:30" card.                                    |
 
 `occurrenceDate` is set when the item is an occurrence of a recurring event or task.
 

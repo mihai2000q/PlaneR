@@ -41,23 +41,23 @@ GET {{host}}/api/tasks?from=2025-07-13&to=2025-07-19&calendarIds=11111111-...&co
 
 **Query parameters**
 
-| Param | Required | Notes |
-|---|---|---|
-| `from` | no | First day of a date range, `yyyy-MM-dd`, inclusive, in the user's timezone. Must be sent together with `to`. |
-| `to` | no | Last day of the range, inclusive. Must be sent together with `from`. |
-| `calendarIds` | no | Comma-separated list |
-| `completed` | no | `true` / `false`; omit for both |
-| `unassigned` | no | If `true`, only tasks with `calendarId = null` |
-| `backlog` | no | If `true`, only tasks with `scheduledFor == null && dueAt == null` |
-| `overdue` | no | If `true`, only tasks with `dueAt` in the past that are not completed |
-| `page` | no | Default `0`. Ignored when `from`/`to` are sent. |
-| `size` | no | Default `20`, max `100`. Ignored when `from`/`to` are sent. |
+| Param         | Required | Notes                                                                                                        |
+|---------------|----------|--------------------------------------------------------------------------------------------------------------|
+| `from`        | no       | First day of a date range, `yyyy-MM-dd`, inclusive, in the user's timezone. Must be sent together with `to`. |
+| `to`          | no       | Last day of the range, inclusive. Must be sent together with `from`.                                         |
+| `calendarIds` | no       | Comma-separated list                                                                                         |
+| `completed`   | no       | `true` / `false`; omit for both                                                                              |
+| `unassigned`  | no       | If `true`, only tasks with `calendarId = null`                                                               |
+| `backlog`     | no       | If `true`, only tasks with `scheduledFor == null && dueAt == null`                                           |
+| `overdue`     | no       | If `true`, only tasks with `dueAt` in the past that are not completed                                        |
+| `page`        | no       | Default `0`. Ignored when `from`/`to` are sent.                                                              |
+| `size`        | no       | Default `20`, max `100`. Ignored when `from`/`to` are sent.                                                  |
 
 **Date-range queries.** A task matches `from`/`to` when its `scheduledFor` **or** the
 local date of its `dueAt` falls inside the range. This is what the "This Week" view
 needs. Recurring tasks are expanded: each occurrence whose `scheduledFor` (or due date)
-falls in the range is returned. A range query is **not paginated**, may not exceed
-**366 days**, and returns `{ "items": [ ... ] }` (see [Api → Pagination](../Api.md#pagination)).
+falls in the range is returned. A range query is **not paginated**, may not exceed **366 days**, and returns
+`{ "items": [ ... ] }` (see [Api → Pagination](../Api.md#pagination)).
 
 **Without a range**, the result is paginated with the standard envelope. This serves
 the Backlog, Completed, and Overdue views. Recurring tasks are **not** expanded here;
@@ -133,8 +133,8 @@ GET {{host}}/api/tasks/{id}
 **Response**
 
 A single task, same shape as an entry in **Get Collection**. For a recurring task it is
-the series, with `occurrenceDate: null`, and `completed` reflects the series' own flag
-(always `false` for a recurring task, whose completions are per occurrence).
+the series, with `occurrenceDate: null`, and `completed` reflects the series' own flag (always `false` for a recurring
+task, whose completions are per occurrence).
 
 ---
 
@@ -160,17 +160,17 @@ POST {{host}}/api/tasks
 }
 ```
 
-| Field | Required | Notes |
-|---|---|---|
-| `calendarId` | no | `null` for unassigned |
-| `title` | yes | 1–120 chars |
-| `description` | no | Max 2000 chars |
-| `dueAt` | no | ISO-8601 UTC |
-| `scheduledFor` | no | `yyyy-MM-dd` |
-| `scheduledStartAt` | no | ISO-8601 UTC; requires `scheduledFor`, and must fall on that date in `timeZone` |
-| `scheduledEndAt` | no | ISO-8601 UTC; requires `scheduledStartAt`, and must be after it |
-| `timeZone` | no | IANA identifier; defaults to the user's current timezone |
-| `recurrence` | no | `RecurrenceRule` object or `null`. Requires `scheduledFor` or `dueAt` to anchor the series. |
+| Field              | Required | Notes                                                                                       |
+|--------------------|----------|---------------------------------------------------------------------------------------------|
+| `calendarId`       | no       | `null` for unassigned                                                                       |
+| `title`            | yes      | 1–120 chars                                                                                 |
+| `description`      | no       | Max 2000 chars                                                                              |
+| `dueAt`            | no       | ISO-8601 UTC                                                                                |
+| `scheduledFor`     | no       | `yyyy-MM-dd`                                                                                |
+| `scheduledStartAt` | no       | ISO-8601 UTC; requires `scheduledFor`, and must fall on that date in `timeZone`             |
+| `scheduledEndAt`   | no       | ISO-8601 UTC; requires `scheduledStartAt`, and must be after it                             |
+| `timeZone`         | no       | IANA identifier; defaults to the user's current timezone                                    |
+| `recurrence`       | no       | `RecurrenceRule` object or `null`. Requires `scheduledFor` or `dueAt` to anchor the series. |
 
 **Response**
 
@@ -178,7 +178,8 @@ The created task, same shape as **Get**.
 
 **Errors**
 
-- `400 VALIDATION_ERROR` if a field is invalid, a time block does not match `scheduledFor`, or `scheduledEndAt` is not after `scheduledStartAt`
+- `400 VALIDATION_ERROR` if a field is invalid, a time block does not match `scheduledFor`, or `scheduledEndAt` is not
+  after `scheduledStartAt`
 - `404 NOT_FOUND` if `calendarId` is not owned by the user
 
 ---
@@ -193,10 +194,10 @@ PATCH {{host}}/api/tasks/{id}
 
 **Query parameters**
 
-| Param | Values | Default | Meaning |
-|---|---|---|---|
-| `scope` | `all` \| `future` | `all` | Only relevant for recurring tasks |
-| `occurrenceDate` | `yyyy-MM-dd` | — | Required when `scope=future`: the first occurrence the change applies to |
+| Param            | Values            | Default | Meaning                                                                  |
+|------------------|-------------------|---------|--------------------------------------------------------------------------|
+| `scope`          | `all` \| `future` | `all`   | Only relevant for recurring tasks                                        |
+| `occurrenceDate` | `yyyy-MM-dd`      | —       | Required when `scope=future`: the first occurrence the change applies to |
 
 `future` splits the series at `occurrenceDate`, as for events. To change one occurrence,
 use [Override Occurrence](#override-occurrence).
@@ -326,8 +327,8 @@ PUT {{host}}/api/tasks/{id}/position
 }
 ```
 
-`scheduledFor` must be the task's current scheduled day. To move a task to another day
-**and** position, use [Schedule](#schedule) and then Reorder.
+`scheduledFor` must be the task's current scheduled day. To move a task to another day **and** position,
+use [Schedule](#schedule) and then Reorder.
 
 **Response**
 
@@ -347,10 +348,10 @@ DELETE {{host}}/api/tasks/{id}
 
 **Query parameters**
 
-| Param | Values | Default | Meaning |
-|---|---|---|---|
-| `scope` | `all` \| `future` | `all` | Only relevant for recurring tasks |
-| `occurrenceDate` | `yyyy-MM-dd` | — | Required when `scope=future`: the series ends the day before this date |
+| Param            | Values            | Default | Meaning                                                                |
+|------------------|-------------------|---------|------------------------------------------------------------------------|
+| `scope`          | `all` \| `future` | `all`   | Only relevant for recurring tasks                                      |
+| `occurrenceDate` | `yyyy-MM-dd`      | —       | Required when `scope=future`: the series ends the day before this date |
 
 **Response**
 
@@ -382,12 +383,12 @@ only a `dueAt` or a bare `scheduledFor` therefore needs the request to say when 
 
 What carries over:
 
-| Task | Event |
-|---|---|
-| `title`, `description`, `calendarId`, `timeZone`, `recurrence` | same |
-| `createdAt` | same (the event keeps the task's creation time) |
-| `dueAt`, `position`, `completed`, `completedAt` | dropped |
-| occurrence overrides, skips, and completions | dropped; only the series itself converts |
+| Task                                                           | Event                                           |
+|----------------------------------------------------------------|-------------------------------------------------|
+| `title`, `description`, `calendarId`, `timeZone`, `recurrence` | same                                            |
+| `createdAt`                                                    | same (the event keeps the task's creation time) |
+| `dueAt`, `position`, `completed`, `completedAt`                | dropped                                         |
+| occurrence overrides, skips, and completions                   | dropped; only the series itself converts        |
 
 The new event starts with an empty `routine` and gets a **new id**; the task's id stops existing.
 
@@ -462,9 +463,9 @@ POST {{host}}/api/tasks/bulk/delete
 }
 ```
 
-| Field | Required | Notes |
-|---|---|---|
-| `ids` | yes | 1–100 items |
+| Field | Required | Notes       |
+|-------|----------|-------------|
+| `ids` | yes      | 1–100 items |
 
 **Response**
 

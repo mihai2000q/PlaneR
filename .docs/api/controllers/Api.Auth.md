@@ -10,7 +10,8 @@
 - [Reset Password](#reset-password)
 
 Handles registration, login, token lifecycle, email verification, and password recovery.
-None of these endpoints require an existing access token. Access tokens last **15 minutes** and refresh tokens **60 days**, rotating on every use; see [Security](../../security/Security.md#authentication) for the full model.
+None of these endpoints require an existing access token. Access tokens last **15 minutes** and refresh tokens **60
+days**, rotating on every use; see [Security](../../security/Security.md#authentication) for the full model.
 
 All failures use the shared error body with the codes from [Api](../Api.md#error-format).
 
@@ -19,7 +20,8 @@ All failures use the shared error body with the codes from [Api](../Api.md#error
 ## Register
 
 Creates a new user account.
-A single **default Calendar** named "Personal" is created automatically; the other palette entries in [Domain](../../domain/Domain.md#calendar) are only presets the client offers when the user creates calendars.
+A single **default Calendar** named "Personal" is created automatically; the other palette entries
+in [Domain](../../domain/Domain.md#calendar) are only presets the client offers when the user creates calendars.
 A verification email is sent to the provided address.
 
 On success, an access token and a refresh token are returned.
@@ -41,12 +43,12 @@ POST {{host}}/api/auth/register
 }
 ```
 
-| Field | Required | Notes |
-|---|---|---|
-| `email` | yes | Valid email, unique |
-| `password` | yes | 8–72 bytes (UTF-8), not in the common-password list. No composition rules — see [Password Policy](../../security/Security.md#password-policy) |
-| `displayName` | yes | 1–60 chars |
-| `timezone` | yes | Valid IANA identifier |
+| Field         | Required | Notes                                                                                                                                         |
+|---------------|----------|-----------------------------------------------------------------------------------------------------------------------------------------------|
+| `email`       | yes      | Valid email, unique                                                                                                                           |
+| `password`    | yes      | 8–72 bytes (UTF-8), not in the common-password list. No composition rules — see [Password Policy](../../security/Security.md#password-policy) |
+| `displayName` | yes      | 1–60 chars                                                                                                                                    |
+| `timezone`    | yes      | Valid IANA identifier                                                                                                                         |
 
 **Response**
 
@@ -73,7 +75,8 @@ string; its expiry is managed by the server and is not part of the response.
 **Errors**
 
 - `400 VALIDATION_ERROR` if a field is invalid
-- `409 CONFLICT` if the email is already registered. This reveals that the address has an account; see [Login and Enumeration](../../security/Security.md#login-and-enumeration).
+- `409 CONFLICT` if the email is already registered. This reveals that the address has an account;
+  see [Login and Enumeration](../../security/Security.md#login-and-enumeration).
 
 ---
 

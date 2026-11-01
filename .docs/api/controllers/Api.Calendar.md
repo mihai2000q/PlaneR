@@ -95,11 +95,11 @@ POST {{host}}/api/calendars
 }
 ```
 
-| Field | Required | Notes |
-|---|---|---|
-| `name` | yes | 1–40 chars, trimmed, unique per user (case-insensitive: "work" and "Work" collide) |
-| `color` | yes | Hex string matching `^#[0-9A-Fa-f]{6}$` |
-| `icon` | yes | Value from `CalendarIcon` enum |
+| Field   | Required | Notes                                                                              |
+|---------|----------|------------------------------------------------------------------------------------|
+| `name`  | yes      | 1–40 chars, trimmed, unique per user (case-insensitive: "work" and "Work" collide) |
+| `color` | yes      | Hex string matching `^#[0-9A-Fa-f]{6}$`                                            |
+| `icon`  | yes      | Value from `CalendarIcon` enum                                                     |
 
 New calendars are appended to the end of the sidebar (`position = max + 1`).
 
@@ -192,10 +192,10 @@ DELETE {{host}}/api/calendars/{id}
 
 **Query parameters**
 
-| Param | Values | Default | Meaning |
-|---|---|---|---|
-| `mode` | `unassign` \| `reassign` \| `cascade` | `unassign` | What happens to events and tasks in this calendar |
-| `targetCalendarId` | UUID | — | Required when `mode=reassign` |
+| Param              | Values                                | Default    | Meaning                                           |
+|--------------------|---------------------------------------|------------|---------------------------------------------------|
+| `mode`             | `unassign` \| `reassign` \| `cascade` | `unassign` | What happens to events and tasks in this calendar |
+| `targetCalendarId` | UUID                                  | —          | Required when `mode=reassign`                     |
 
 - `unassign` — events and tasks keep existing with `calendarId = null`
 - `reassign` — events and tasks are moved to `targetCalendarId`

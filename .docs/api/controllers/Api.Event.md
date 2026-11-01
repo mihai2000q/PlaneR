@@ -46,15 +46,16 @@ GET {{host}}/api/events?from=2025-07-13&to=2025-07-19&calendarIds=11111111-...&u
 
 **Query parameters**
 
-| Param | Required | Notes |
-|---|---|---|
-| `from` | yes | First day of the range, `yyyy-MM-dd`, inclusive, in the user's timezone |
-| `to` | yes | Last day of the range, `yyyy-MM-dd`, inclusive, in the user's timezone |
-| `calendarIds` | no | Comma-separated list; omit to include all calendars |
-| `unassigned` | no | If `true`, only events with `calendarId = null` |
+| Param         | Required | Notes                                                                   |
+|---------------|----------|-------------------------------------------------------------------------|
+| `from`        | yes      | First day of the range, `yyyy-MM-dd`, inclusive, in the user's timezone |
+| `to`          | yes      | Last day of the range, `yyyy-MM-dd`, inclusive, in the user's timezone  |
+| `calendarIds` | no       | Comma-separated list; omit to include all calendars                     |
+| `unassigned`  | no       | If `true`, only events with `calendarId = null`                         |
 
 - The range covers whole days: from the start of `from` to the end of `to`, in the user's timezone.
-- An event is returned if it **overlaps** the range at all, so an event that starts the day before `from` and ends inside the range is included.
+- An event is returned if it **overlaps** the range at all, so an event that starts the day before `from` and ends
+  inside the range is included.
 - The range must not exceed **366 days**; otherwise `400 VALIDATION_ERROR`.
 - The result is **not paginated** (see [Api → Pagination](../Api.md#pagination)) and is sorted by `startsAt`, then `id`.
 
@@ -90,7 +91,8 @@ GET {{host}}/api/events?from=2025-07-13&to=2025-07-19&calendarIds=11111111-...&u
 }
 ```
 
-`occurrenceDate` is the occurrence's local date (`yyyy-MM-dd`) for expanded occurrences of a recurring event, and `null` otherwise. For an occurrence, `startsAt`/`endsAt`/`routine` are those of the occurrence, while `id` is the series' id.
+`occurrenceDate` is the occurrence's local date (`yyyy-MM-dd`) for expanded occurrences of a recurring event, and `null`
+otherwise. For an occurrence, `startsAt`/`endsAt`/`routine` are those of the occurrence, while `id` is the series' id.
 
 `routineStartAt` is `null` when the event has no routine.
 
@@ -138,24 +140,25 @@ POST {{host}}/api/events
 }
 ```
 
-| Field | Required | Notes |
-|---|---|---|
-| `calendarId` | no | `null` for unassigned |
-| `title` | yes | 1–120 chars |
-| `description` | no | Max 2000 chars |
-| `location` | no | Max 200 chars |
-| `startsAt` | yes | ISO-8601 UTC |
-| `endsAt` | yes | ISO-8601 UTC, must be after `startsAt` |
-| `timeZone` | no | IANA identifier; defaults to the user's current timezone |
-| `allDay` | no | Default `false`. When `true`, `startsAt` and `endsAt` must be local midnights in `timeZone`. |
-| `recurrence` | no | `RecurrenceRule` object or `null` |
-| `routine` | no | Ordered list; omit or pass `[]` for none. Max 20 steps. Not allowed on all-day events. |
+| Field         | Required | Notes                                                                                        |
+|---------------|----------|----------------------------------------------------------------------------------------------|
+| `calendarId`  | no       | `null` for unassigned                                                                        |
+| `title`       | yes      | 1–120 chars                                                                                  |
+| `description` | no       | Max 2000 chars                                                                               |
+| `location`    | no       | Max 200 chars                                                                                |
+| `startsAt`    | yes      | ISO-8601 UTC                                                                                 |
+| `endsAt`      | yes      | ISO-8601 UTC, must be after `startsAt`                                                       |
+| `timeZone`    | no       | IANA identifier; defaults to the user's current timezone                                     |
+| `allDay`      | no       | Default `false`. When `true`, `startsAt` and `endsAt` must be local midnights in `timeZone`. |
+| `recurrence`  | no       | `RecurrenceRule` object or `null`                                                            |
+| `routine`     | no       | Ordered list; omit or pass `[]` for none. Max 20 steps. Not allowed on all-day events.       |
 
 **Routine validation**
 
 - `name` — 1–60 characters, trimmed
 - `duration` — 1 to 1440 (in minutes; 24 hours max per step)
-- Total routine duration must not exceed **24 hours** (1440 minutes). An event whose steps add up to more than a day is almost certainly a data-entry mistake.
+- Total routine duration must not exceed **24 hours** (1440 minutes). An event whose steps add up to more than a day is
+  almost certainly a data-entry mistake.
 - An event with `allDay = true` cannot have a routine: preparing "before" an all-day banner has no meaning.
 
 **Response**
@@ -165,7 +168,9 @@ The created event, same shape as **Get**. `routineStartAt` and per-step
 
 **Errors**
 
-- `400 VALIDATION_ERROR` if `endsAt` is not after `startsAt`, if `timeZone` is not a valid identifier, if an all-day event's times are not local midnights, if a routine step fails validation, if the total routine duration exceeds 24 hours, or if an all-day event has a routine
+- `400 VALIDATION_ERROR` if `endsAt` is not after `startsAt`, if `timeZone` is not a valid identifier, if an all-day
+  event's times are not local midnights, if a routine step fails validation, if the total routine duration exceeds 24
+  hours, or if an all-day event has a routine
 - `404 NOT_FOUND` if `calendarId` is not owned by the user
 
 ---
@@ -180,10 +185,10 @@ PATCH {{host}}/api/events/{id}
 
 **Query parameters**
 
-| Param | Values | Default | Meaning |
-|---|---|---|---|
-| `scope` | `all` \| `future` | `all` | Only relevant for recurring events |
-| `occurrenceDate` | `yyyy-MM-dd` | — | Required when `scope=future`: the first occurrence the change applies to |
+| Param            | Values            | Default | Meaning                                                                  |
+|------------------|-------------------|---------|--------------------------------------------------------------------------|
+| `scope`          | `all` \| `future` | `all`   | Only relevant for recurring events                                       |
+| `occurrenceDate` | `yyyy-MM-dd`      | —       | Required when `scope=future`: the first occurrence the change applies to |
 
 With `scope=future` the series is split at `occurrenceDate`: the original series is
 ended the day before, and a new series carrying the changes starts on that date.
@@ -203,7 +208,8 @@ and routine step times. With `scope=future` it is the **new** series.
 
 **Errors**
 
-- `400 VALIDATION_ERROR` if the request violates the time or routine constraints, or if `scope=future` is used without `occurrenceDate`
+- `400 VALIDATION_ERROR` if the request violates the time or routine constraints, or if `scope=future` is used without
+  `occurrenceDate`
 - `404 NOT_FOUND` if the event is not owned by the user
 
 ---
@@ -247,10 +253,10 @@ DELETE {{host}}/api/events/{id}
 
 **Query parameters**
 
-| Param | Values | Default | Meaning |
-|---|---|---|---|
-| `scope` | `all` \| `future` | `all` | Only relevant for recurring events |
-| `occurrenceDate` | `yyyy-MM-dd` | — | Required when `scope=future`: the series ends the day before this date |
+| Param            | Values            | Default | Meaning                                                                |
+|------------------|-------------------|---------|------------------------------------------------------------------------|
+| `scope`          | `all` \| `future` | `all`   | Only relevant for recurring events                                     |
+| `occurrenceDate` | `yyyy-MM-dd`      | —       | Required when `scope=future`: the series ends the day before this date |
 
 To remove a single occurrence, use [Skip Occurrence](#skip-occurrence).
 
@@ -322,14 +328,14 @@ POST {{host}}/api/events/{id}/convert-to-task
 
 What carries over:
 
-| Event | Task |
-|---|---|
-| `title`, `description`, `calendarId`, `timeZone`, `recurrence` | same |
-| `createdAt` | same (the task keeps the event's creation time) |
-| `startsAt` / `endsAt` | `scheduledStartAt` / `scheduledEndAt`, and `scheduledFor` is the local date of `startsAt` — unless overridden below |
-| `location` | dropped (a task has no location) |
-| `routine` | **discarded** — a task has no preparation concept |
-| occurrence overrides and skips | dropped; only the series itself converts |
+| Event                                                          | Task                                                                                                                |
+|----------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `title`, `description`, `calendarId`, `timeZone`, `recurrence` | same                                                                                                                |
+| `createdAt`                                                    | same (the task keeps the event's creation time)                                                                     |
+| `startsAt` / `endsAt`                                          | `scheduledStartAt` / `scheduledEndAt`, and `scheduledFor` is the local date of `startsAt` — unless overridden below |
+| `location`                                                     | dropped (a task has no location)                                                                                    |
+| `routine`                                                      | **discarded** — a task has no preparation concept                                                                   |
+| occurrence overrides and skips                                 | dropped; only the series itself converts                                                                            |
 
 The task gets a **new id**; the event's id stops existing. A recurring event becomes a
 recurring task with no completions.
@@ -344,8 +350,7 @@ recurring task with no completions.
 ```
 
 All fields are optional. `scheduledFor`, `scheduledStartAt`, `scheduledEndAt`, and
-`dueAt` override the defaults above. For an all-day event, only `scheduledFor` is set
-(no time block).
+`dueAt` override the defaults above. For an all-day event, only `scheduledFor` is set (no time block).
 
 **Response**
 
@@ -372,9 +377,9 @@ POST {{host}}/api/events/bulk/delete
 }
 ```
 
-| Field | Required | Notes |
-|---|---|---|
-| `ids` | yes | 1–100 items |
+| Field | Required | Notes       |
+|-------|----------|-------------|
+| `ids` | yes      | 1–100 items |
 
 **Response**
 

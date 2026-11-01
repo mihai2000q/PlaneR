@@ -5,16 +5,16 @@ Each document is standalone, but they cross-reference each other freely.
 
 ## Structure
 
-| Folder | Purpose |
-|---|---|
-| [`api/`](api/) | HTTP contract |
-| [`architecture/`](architecture/) | System design, error handling, and structural decisions |
-| [`dev/`](dev/) | Development workflow, conventions, and reference material |
-| [`domain/`](domain/) | Domain models and business rules |
-| [`features/`](features/) | What the application does, and what is planned or deferred |
-| [`infrastructure/`](infrastructure/) | Database, migrations, deployment, and runtime concerns |
-| [`security/`](security/) | Authentication, authorization, and threat model |
-| [`testing/`](testing/) | Test strategy per platform |
+| Folder                               | Purpose                                                    |
+|--------------------------------------|------------------------------------------------------------|
+| [`api/`](api/)                       | HTTP contract                                              |
+| [`architecture/`](architecture/)     | System design, error handling, and structural decisions    |
+| [`dev/`](dev/)                       | Development workflow, conventions, and reference material  |
+| [`domain/`](domain/)                 | Domain models and business rules                           |
+| [`features/`](features/)             | What the application does, and what is planned or deferred |
+| [`infrastructure/`](infrastructure/) | Database, migrations, deployment, and runtime concerns     |
+| [`security/`](security/)             | Authentication, authorization, and threat model            |
+| [`testing/`](testing/)               | Test strategy per platform                                 |
 
 ## Documents
 
@@ -42,7 +42,8 @@ Each document is standalone, but they cross-reference each other freely.
 
 ### Domain
 
-- [Domain](domain/Domain.md) — domain models, timezones, task/event conversion, recurrence, preparation steps, supporting records, enums
+- [Domain](domain/Domain.md) — domain models, timezones, task/event conversion, recurrence, preparation steps,
+  supporting records, enums
 
 ### Features
 
@@ -50,12 +51,15 @@ Each document is standalone, but they cross-reference each other freely.
 
 ### Infrastructure
 
-- [Database](infrastructure/Database.md) — naming conventions, schema, indexes, migrations (Flyway), data access (Exposed)
-- [Deployment](infrastructure/Deployment.md) — environments, CI, releases, server/desktop/Android pipelines, TLS, backups, secrets
+- [Database](infrastructure/Database.md) — naming conventions, schema, indexes, migrations (Flyway), data access
+  (Exposed)
+- [Deployment](infrastructure/Deployment.md) — environments, CI, releases, server/desktop/Android pipelines, TLS,
+  backups, secrets
 
 ### Security
 
-- [Security](security/Security.md) — access control, passwords, access/refresh/one-time tokens, transport security, rate limiting
+- [Security](security/Security.md) — access control, passwords, access/refresh/one-time tokens, transport security, rate
+  limiting
 
 ### Testing
 

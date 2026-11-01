@@ -1,10 +1,13 @@
 # PlaneR Testing — Android
 
-End-to-end tests for the Android application drive the **real Jetpack Compose UI** on an **Android emulator or device** against a **real running server** and a real database.
+End-to-end tests for the Android application drive the **real Jetpack Compose UI** on an **Android emulator or device**
+against a **real running server** and a real database.
 
 Shared conventions (naming, Given/When/Then) are described in the [overview](Testing.md#conventions).
 
-> **Status: partly built.** The instrumented-test setup exists and works on an emulator: `./gradlew :planer-android:connectedDebugAndroidTest` runs `PlaneRAppTest`, a component-level test that needs no server. The *end-to-end* layer described below — tests against a real server, sample data, the `AuthScreen` — is planned.
+> **Status: partly built.** The instrumented-test setup exists and works on an emulator:
+> `./gradlew :planer-android:connectedDebugAndroidTest` runs `PlaneRAppTest`, a component-level test that needs no server.
+> The *end-to-end* layer described below — tests against a real server, sample data, the `AuthScreen` — is planned.
 
 - [Get Started](#get-started)
 - [Conventions](#conventions)
@@ -14,7 +17,8 @@ Shared conventions (naming, Given/When/Then) are described in the [overview](Tes
 
 ### Docker Environment
 
-The e2e tests expect a working server and database. Follow the [server Get Started](../../planer-server/README.md#docker-containers) to:
+The e2e tests expect a working server and database. Follow
+the [server Get Started](../../planer-server/README.md#docker-containers) to:
 
 - create a `.env` file
 - start the containers with `docker compose up -d`
@@ -24,7 +28,8 @@ Alternatively, the `startup.sh` script at the repository root does all of this i
 
 ### Device or Emulator
 
-The tests run on a connected Android device or a running emulator. Android Studio manages both; from the **Device Manager**, launch any emulator with API 26 or higher.
+The tests run on a connected Android device or a running emulator. Android Studio manages both; from the **Device
+Manager**, launch any emulator with API 26 or higher.
 
 To verify a device is visible, run:
 
@@ -32,7 +37,9 @@ To verify a device is visible, run:
 adb devices
 ```
 
-(`adb` is in the SDK's `platform-tools` folder.) If it lists a device in the `device` state, you're ready. Emulators created in Android Studio are listed in the Device Manager; one with a missing configuration file will not start, so recreate it there.
+(`adb` is in the SDK's `platform-tools` folder.) If it lists a device in the `device` state, you're ready. Emulators
+created in Android Studio are listed in the Device Manager; one with a missing configuration file will not start, so
+recreate it there.
 
 ### Running the Tests
 
@@ -42,7 +49,8 @@ To run the Android instrumented tests:
 ./gradlew :planer-android:connectedDebugAndroidTest
 ```
 
-The app and a test APK are installed and executed on the device, then the results are reported back through Gradle and the app is uninstalled again.
+The app and a test APK are installed and executed on the device, then the results are reported back through Gradle and
+the app is uninstalled again.
 
 ## Conventions
 
@@ -86,18 +94,25 @@ class AuthScreenTest {
 
 There are two differences from the desktop test:
 
-- **The rule.** `createAndroidComposeRule<MainActivity>()` launches the app from `MainActivity`, while desktop uses `createComposeRule()` with `setContent`.
-- **The method name.** Instrumented tests cannot use backtick names with spaces while `minSdk` is below 30, so the same `when … then …` sentence is written as camelCase clauses joined by an underscore. See [Testing → Naming](Testing.md#naming).
+- **The rule.** `createAndroidComposeRule<MainActivity>()` launches the app from `MainActivity`, while desktop uses
+  `createComposeRule()` with `setContent`.
+- **The method name.** Instrumented tests cannot use backtick names with spaces while `minSdk` is below 30, so the same
+  `when … then …` sentence is written as camelCase clauses joined by an underscore.
+  See [Testing → Naming](Testing.md#naming).
 
 ## Misc
 
 ### Custom Matchers
 
-Custom matchers live in `planer-android/src/androidTest/kotlin/matchers`. They are specific to the Android module; the desktop module keeps its own.
+Custom matchers live in `planer-android/src/androidTest/kotlin/matchers`. They are specific to the Android module; the
+desktop module keeps its own.
 
 ### Utils
 
-Tests sign in as a seeded user by calling `ApiClient.login(...)` in test setup with the credentials from the sample data (see [Sample Data](../dev/Sample-Data.md)), then start the app already authenticated. Do not mint tokens by hand: that would require the server's signing key in the test code. The application under test reaches the host machine's server at `http://10.0.2.2:8080`, which needs cleartext HTTP allowed in the debug build's network security config.
+Tests sign in as a seeded user by calling `ApiClient.login(...)` in test setup with the credentials from the sample data
+(see [Sample Data](../dev/Sample-Data.md)), then start the app already authenticated. Do not mint tokens by hand: that
+would require the server's signing key in the test code. The application under test reaches the host machine's server at
+`http://10.0.2.2:8080`, which needs cleartext HTTP allowed in the debug build's network security config.
 
 ### Test Tags
 
@@ -113,7 +128,9 @@ Then select it in the test:
 rule.onNodeWithTag("event-card-22222222-...").assertIsDisplayed()
 ```
 
-Tags are stable identifiers that survive copy changes and layout refactors. Keep tag names in a single `TestTags` object in the Android module. The desktop client defines its own; by convention the two use the same naming pattern (`event-card-<id>`), but nothing enforces it.
+Tags are stable identifiers that survive copy changes and layout refactors. Keep tag names in a single `TestTags` object
+in the Android module. The desktop client defines its own; by convention the two use the same naming pattern
+(`event-card-<id>`), but nothing enforces it.
 
 ### Emulator Slowdowns
 

@@ -11,8 +11,8 @@ This document describes the conventions used for Git on the PlaneR repository.
 ## Git Issues
 
 Usually, whenever the code has to be modified, an issue will be created on **GitHub**.
-The title of the issue will be the developer's choice
-(for preference, it should resemble the git commits to a higher level overview without,
+The title of the issue will be the developer's choice (for preference, it should resemble the git commits to a higher
+level overview without,
 of course, the issue tag), however, the labels attached to it should be significant.
 The title should also include the **module** that is being worked on.
 
@@ -48,8 +48,7 @@ keeps the history clean and avoids branches that touch everything at once.
 
 ## Git Branches
 
-Every branch name starts with the **module**, then the **type**, then the
-**issue number** and a short description:
+Every branch name starts with the **module**, then the **type**, then the **issue number** and a short description:
 
 ```
 <module>/<type>/<issue-number>-<short-description>
@@ -81,7 +80,8 @@ Every branch name starts with the **module**, then the **type**, then the
 
 ### Main branches
 
-- **develop** is the main development branch. Every feature, bug, refactor, and documentation branch is based on it and merged back into it.
+- **develop** is the main development branch. Every feature, bug, refactor, and documentation branch is based on it and
+  merged back into it.
 - **master** is the release branch. It only receives merges from `develop` via a release PR.
 
 ### Examples
@@ -133,9 +133,11 @@ However, if multiple layers or modules are affected, try submitting smaller comm
 ## Pull Requests
 
 - **Every PR targets `develop`.**
-- **A PR should reference its issue** in the description using `Closes #<issue>` so the issue closes automatically on merge.
+- **A PR should reference its issue** in the description using `Closes #<issue>` so the issue closes automatically on
+  merge.
 - **Merge commits are used.** History is preserved as-is; individual commits on the branch remain visible in the log.
-- **Rebase before opening the PR** if your branch has fallen behind `develop` and you want a clean linear history. Once the PR is open, further updates use normal merge commits.
+- **Rebase before opening the PR** if your branch has fallen behind `develop` and you want a clean linear history. Once
+  the PR is open, further updates use normal merge commits.
 
 ## Releases
 
@@ -149,9 +151,12 @@ v<major>.<minor>.<patch>
 - **minor** — new features that are backward compatible
 - **patch** — bug fixes and small improvements
 
-A release is created when a `develop` → `master` PR is merged. The tag is created on the merge commit, and a GitHub Release is published with a short summary of what changed. Pushing the tag starts the server, desktop, and Android release workflows (see [Deployment → Releases](../infrastructure/Deployment.md#releases)).
+A release is created when a `develop` → `master` PR is merged. The tag is created on the merge commit, and a GitHub
+Release is published with a short summary of what changed. Pushing the tag starts the server, desktop, and Android
+release workflows (see [Deployment → Releases](../infrastructure/Deployment.md#releases)).
 
-The version number is stored in the root `build.gradle.kts` and is the single source of truth for both the server and the clients. It is also the value clients send in `X-Client-Version`.
+The version number is stored in the root `build.gradle.kts` and is the single source of truth for both the server and
+the clients. It is also the value clients send in `X-Client-Version`.
 
 **Release checklist for a *major* release** (a breaking change to the API or domain):
 
