@@ -2,7 +2,7 @@
 
 End-to-end tests for the desktop application drive the **real Compose for Desktop UI** against a **real running server** and a real database. They verify that the whole system works from the user's perspective.
 
-Shared conventions (naming, Arrange/Act/Assert) are described in the [overview](Testing.md#conventions).
+Shared conventions (naming, Given/When/Then) are described in the [overview](Testing.md#conventions).
 
 - [Get Started](#get-started)
 - [Conventions](#conventions)
@@ -60,13 +60,16 @@ class AuthScreenTest {
     val rule = createComposeRule()
 
     @Test
-    fun whenValidCredentials_shouldNavigateToCalendar() {
+    fun `when valid credentials are submitted, then it navigates to the calendar`() {
+        // given
         rule.setContent { PlaneRApp() }
-
         rule.onNodeWithText("Email").performTextInput("alex@example.com")
         rule.onNodeWithText("Password").performTextInput("Password123!")
+
+        // when
         rule.onNodeWithText("Sign in").performClick()
 
+        // then
         rule.onNodeWithText("Today").assertIsDisplayed()
     }
 }

@@ -27,13 +27,21 @@ The test class is named after the class or feature under test, followed by `Test
 - `AuthScreenTest` — UI test for the auth screen
 - `EventRoutesTest` — integration test for the event routes
 
-Test methods follow the pattern `whenScenario_shouldExpectedOutcome`:
+Test methods are named with a **backtick sentence** that reads as a **when … then …** statement:
 
-- `whenRegisterIsSuccessful_shouldCreateUserAndReturnToken`
-- `whenEmailAlreadyExists_shouldThrowConflict`
-- `whenPasswordIsTooShort_shouldFailValidation`
+- ``fun `when register is successful, then it creates the user and returns a token`()``
+- ``fun `when the email already exists, then register fails with a conflict`()``
+- ``fun `when the password is too short, then validation fails`()``
 
-A shorter `whenScenario_shouldOutcome` form is accepted when the method under test is already clear from the class name.
+Start with `given …` only when the starting state is not obvious from the rest of the name (``given an unverified account, when changing the email, then it is forbidden``). Keep names to one sentence; if it needs two, the test is probably doing too much.
+
+**Where backticks with spaces are not allowed.** The JVM accepts them, so they work in the server, the desktop app, and the JVM and Android *host* tests of `planer-shared`. They do **not** work in **Android instrumented tests** (`planer-android/src/androidTest`) while `minSdk` is below 30, because the dex format on older Android versions rejects spaces in method names. There, write the same sentence as camelCase clauses joined by an underscore:
+
+```kotlin
+fun whenValidCredentials_thenNavigatesToCalendar()
+```
+
+The same applies to any future Kotlin/JS or Kotlin/Native target. Everywhere else, use the backtick form.
 
 ### Structure
 
@@ -45,23 +53,27 @@ The component under test is held in a field. The name differs by test level:
 | Integration | `sut` | System Under Test |
 | API integration | `client` | The Ktor test client |
 
-Every method has three stages, marked by comments:
+Every method has three stages, marked by comments in the **Given / When / Then** style:
 
 ```kotlin
 @Test
-fun whenRegisterIsSuccessful_shouldCreateUserAndReturnToken() = runTest {
-    // Arrange
+fun `when register is successful, then it creates the user and returns a token`() = runTest {
+    // given
     val command = RegisterUserCommand(...)
 
-    // Act
+    // when
     val result = uut.register(command)
 
-    // Assert
+    // then
     result.token.shouldNotBeNull()
 }
 ```
 
-The `Arrange / Act / Assert` pattern makes the intent of a test obvious at a glance and keeps tests small enough to read in one screen.
+- **given** — the state and inputs the scenario starts from
+- **when** — the single action under test
+- **then** — what must now be true
+
+(This is the same three-part structure as Arrange / Act / Assert, with BDD labels.) It makes the intent of a test obvious at a glance and keeps tests small enough to read in one screen. A test has exactly one `when`; if it needs a second, split it into two tests. A trivial test may fold `given` into its inputs, but the three comments stay so every test looks the same.
 
 ### Fixtures and Fakes
 

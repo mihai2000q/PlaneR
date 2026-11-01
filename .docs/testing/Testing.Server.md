@@ -11,7 +11,7 @@
 
 Tests for the server cover two levels: unit tests for isolated classes, and integration tests that exercise the HTTP layer against a real Postgres instance.
 
-Shared conventions (naming, Arrange/Act/Assert, fixtures) are described in the [overview](Testing.md#conventions).
+Shared conventions (naming, Given/When/Then, fixtures) are described in the [overview](Testing.md#conventions).
 
 ## Unit Testing
 
@@ -41,8 +41,8 @@ class RegisterUserServiceTest {
     private val uut = RegisterUserService(userRepository, passwordHasher)
 
     @Test
-    fun whenRegisterIsSuccessful_shouldCreateUserAndReturnToken() = runTest {
-        // Arrange
+    fun `when register is successful, then it creates the user and returns a token`() = runTest {
+        // given
         val command = RegisterUserCommand(
             email = "alex@example.com",
             password = "Password123!",
@@ -50,10 +50,10 @@ class RegisterUserServiceTest {
             timezone = "Europe/Berlin"
         )
 
-        // Act
+        // when
         val result = uut.register(command)
 
-        // Assert
+        // then
         result.token.shouldNotBeNull()
         userRepository.findByEmail("alex@example.com").shouldNotBeNull()
     }
@@ -163,7 +163,7 @@ abstract class UserCollection : BaseIntegrationTest(
 
 class GetCurrentUserTest : UserCollection() {
     @Test
-    fun whenAuthenticated_shouldReturnProfile() = runTest { /* uses `client` */ }
+    fun `when authenticated, then it returns the profile`() = runTest { /* uses `client` */ }
 }
 ```
 

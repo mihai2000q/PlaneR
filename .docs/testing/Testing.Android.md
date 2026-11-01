@@ -2,7 +2,7 @@
 
 End-to-end tests for the Android application drive the **real Jetpack Compose UI** on an **Android emulator or device** against a **real running server** and a real database.
 
-Shared conventions (naming, Arrange/Act/Assert) are described in the [overview](Testing.md#conventions).
+Shared conventions (naming, Given/When/Then) are described in the [overview](Testing.md#conventions).
 
 - [Get Started](#get-started)
 - [Conventions](#conventions)
@@ -68,17 +68,24 @@ class AuthScreenTest {
     val rule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun whenValidCredentials_shouldNavigateToCalendar() {
+    fun whenValidCredentialsAreSubmitted_thenNavigatesToCalendar() {
+        // given
         rule.onNodeWithText("Email").performTextInput("alex@example.com")
         rule.onNodeWithText("Password").performTextInput("Password123!")
+
+        // when
         rule.onNodeWithText("Sign in").performClick()
 
+        // then
         rule.onNodeWithText("Today").assertIsDisplayed()
     }
 }
 ```
 
-The only difference from the desktop test is the rule: `createAndroidComposeRule<MainActivity>()` launches the app from `MainActivity`, while desktop uses `createComposeRule()` with `setContent`.
+There are two differences from the desktop test:
+
+- **The rule.** `createAndroidComposeRule<MainActivity>()` launches the app from `MainActivity`, while desktop uses `createComposeRule()` with `setContent`.
+- **The method name.** Instrumented tests cannot use backtick names with spaces while `minSdk` is below 30, so the same `when … then …` sentence is written as camelCase clauses joined by an underscore. See [Testing → Naming](Testing.md#naming).
 
 ## Misc
 
