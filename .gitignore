@@ -1,0 +1,55 @@
+# ---- Gradle / Kotlin ------------------------------------------------------
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
+*.class
+hs_err_pid*
+replay_pid*
+
+# ---- IDEs -----------------------------------------------------------------
+# JetBrains (IntelliJ IDEA / Android Studio): ignore the whole folder
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+# VS Code / Fleet / Eclipse
+.vscode/
+.fleet/
+.project
+.classpath
+.settings/
+
+# ---- Android --------------------------------------------------------------
+local.properties
+captures/
+.cxx/
+.externalNativeBuild/
+*.apk
+*.aab
+*.ap_
+*.dex
+# Signing material: never commit
+keystore.properties
+*.jks
+*.keystore
+
+# ---- Secrets and local configuration -------------------------------------
+.env
+.env.*
+!.env.dev
+*.pem
+
+# ---- Logs and temporary files --------------------------------------------
+*.log
+*.tmp
+*.swp
+*~
+
+# ---- Operating system -----------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db
+$RECYCLE.BIN/
