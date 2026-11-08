@@ -10,5 +10,4 @@ object RefreshTokenTable : UuidTable("refresh_tokens") {
     val createdAt = timestamp("created_at")
     val expiresAt = timestamp("expires_at")
     val revokedAt = timestamp("revoked_at").nullable()
-    val replacedBy = uuid("replaced_by").nullable()
 }
