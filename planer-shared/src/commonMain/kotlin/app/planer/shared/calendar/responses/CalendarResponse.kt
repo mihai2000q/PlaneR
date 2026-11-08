@@ -1,4 +1,4 @@
-package app.planer.shared.calendar
+package app.planer.shared.calendar.responses
 
 import app.planer.shared.calendar.enums.CalendarIcon
 import kotlinx.serialization.Serializable
@@ -6,7 +6,7 @@ import kotlin.time.Instant
 import kotlin.uuid.Uuid
 
 @Serializable
-data class CalendarDto(
+data class CalendarResponse(
     val id: Uuid,
     val name: String,
     val color: String,
