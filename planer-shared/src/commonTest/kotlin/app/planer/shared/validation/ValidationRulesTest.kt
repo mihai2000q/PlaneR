@@ -3,7 +3,7 @@ package app.planer.shared.validation
 import io.kotest.matchers.shouldBe
 import kotlin.test.Test
 
-class ValidationTest {
+class ValidationRulesTest {
 
     @Test
     fun `when color is a six-digit hex, then it is valid`() {
@@ -11,7 +11,7 @@ class ValidationTest {
         val color = "#7C3AED"
 
         // when
-        val result = Validation.isValidHexColor(color)
+        val result = ValidationRules.isValidHexColor(color)
 
         // then
         result shouldBe true
@@ -23,7 +23,7 @@ class ValidationTest {
         val colors = listOf("7C3AED", "#7C3AE", "#7C3AEDD", "#GGGGGG", "")
 
         // when
-        val results = colors.map(Validation::isValidHexColor)
+        val results = colors.map(ValidationRules::isValidHexColor)
 
         // then
         results shouldBe List(colors.size) { false }
@@ -35,7 +35,7 @@ class ValidationTest {
         val title = "   "
 
         // when
-        val result = Validation.isValidTitle(title)
+        val result = ValidationRules.isValidTitle(title)
 
         // then
         result shouldBe false
@@ -44,10 +44,10 @@ class ValidationTest {
     @Test
     fun `when title is at the maximum length, then it is valid`() {
         // given
-        val title = "a".repeat(Validation.TITLE_MAX_LENGTH)
+        val title = "a".repeat(ValidationRules.TITLE_MAX_LENGTH)
 
         // when
-        val result = Validation.isValidTitle(title)
+        val result = ValidationRules.isValidTitle(title)
 
         // then
         result shouldBe true
@@ -56,10 +56,10 @@ class ValidationTest {
     @Test
     fun `when title is longer than the maximum, then it is invalid`() {
         // given
-        val title = "a".repeat(Validation.TITLE_MAX_LENGTH + 1)
+        val title = "a".repeat(ValidationRules.TITLE_MAX_LENGTH + 1)
 
         // when
-        val result = Validation.isValidTitle(title)
+        val result = ValidationRules.isValidTitle(title)
 
         // then
         result shouldBe false

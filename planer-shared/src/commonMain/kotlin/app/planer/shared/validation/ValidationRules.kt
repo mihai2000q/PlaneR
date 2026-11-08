@@ -1,6 +1,6 @@
 package app.planer.shared.validation
 
-object Validation {
+object ValidationRules {
 
     const val TITLE_MAX_LENGTH = 120
 

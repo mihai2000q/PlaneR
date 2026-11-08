@@ -15,7 +15,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import app.planer.shared.validation.Validation
+import app.planer.shared.validation.ValidationRules
 
 @Composable
 fun PlaneRApp() {
@@ -29,7 +29,7 @@ fun PlaneRApp() {
                 Text("Desktop client", style = MaterialTheme.typography.bodyMedium)
 
                 var color by remember { mutableStateOf("#7C3AED") }
-                val valid = Validation.isValidHexColor(color)
+                val valid = ValidationRules.isValidHexColor(color)
 
                 OutlinedTextField(
                     value = color,
