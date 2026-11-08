@@ -21,7 +21,7 @@ class CalendarEntity(id: EntityID<Uuid>) : UuidEntity(id) {
 
 fun CalendarEntity.toDomain() = Calendar(
     id = id.value,
-    userId = userId,
+    userId = userId.value,
     name = name,
     color = color,
     icon = icon,

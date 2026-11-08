@@ -1,5 +1,6 @@
 package app.planer.server.calendar.data
 
+import app.planer.server.user.data.UserTable
 import app.planer.server.calendar.domain.Calendar
 import app.planer.server.calendar.domain.CalendarRepository
 import app.planer.server.common.errors.translatingDatabaseErrors
@@ -8,6 +9,7 @@ import app.planer.server.task.data.TaskTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.count
+import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.core.wrapAsExpression
@@ -58,7 +60,7 @@ class CalendarRepositoryImpl : CalendarRepository {
         translatingDatabaseErrors {
             transaction {
                 CalendarEntity.new(calendar.id) {
-                    userId = calendar.userId
+                    userId = EntityID(calendar.userId, UserTable)
                     name = calendar.name
                     color = calendar.color
                     icon = calendar.icon

@@ -1,5 +1,7 @@
 package app.planer.server.calendar.data
 
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import app.planer.server.user.data.UserTable
 import app.planer.shared.calendar.enums.CalendarIcon
 import org.jetbrains.exposed.v1.core.dao.id.UuidTable
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -12,5 +14,5 @@ object CalendarTable : UuidTable("calendars") {
     val isDefault = bool("is_default")
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")
-    val userId = uuid("user_id")
+    val userId = reference("user_id", UserTable, onDelete = ReferenceOption.CASCADE)
 }

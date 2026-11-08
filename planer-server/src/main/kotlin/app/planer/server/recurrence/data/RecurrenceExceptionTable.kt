@@ -1,5 +1,8 @@
 package app.planer.server.recurrence.data
 
+import org.jetbrains.exposed.v1.core.ReferenceOption
+import app.planer.server.task.data.TaskTable
+import app.planer.server.event.data.EventTable
 import org.jetbrains.exposed.v1.core.dao.id.UuidTable
 import org.jetbrains.exposed.v1.javatime.date
 import org.jetbrains.exposed.v1.javatime.timestamp
@@ -11,8 +14,8 @@ import org.jetbrains.exposed.v1.javatime.timestamp
  * The `routine_override` jsonb column is not mapped yet: it needs the `exposed-json` module.
  */
 object RecurrenceExceptionTable : UuidTable("recurrence_exceptions") {
-    val eventId = uuid("event_id").nullable()
-    val taskId = uuid("task_id").nullable()
+    val eventId = reference("event_id", EventTable, onDelete = ReferenceOption.CASCADE).nullable()
+    val taskId = reference("task_id", TaskTable, onDelete = ReferenceOption.CASCADE).nullable()
     val occurrenceDate = date("occurrence_date")
     val skipped = bool("skipped").default(false)
 
