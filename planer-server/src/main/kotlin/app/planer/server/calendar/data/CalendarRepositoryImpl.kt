@@ -2,6 +2,7 @@ package app.planer.server.calendar.data
 
 import app.planer.server.calendar.domain.Calendar
 import app.planer.server.calendar.domain.CalendarRepository
+import app.planer.server.common.errors.translatingDatabaseErrors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.jetbrains.exposed.v1.core.eq
@@ -23,18 +24,20 @@ class CalendarRepositoryImpl : CalendarRepository {
     }
 
     override suspend fun create(calendar: Calendar) = withContext(Dispatchers.IO) {
-        transaction {
-            CalendarEntity.new(calendar.id) {
-                userId = calendar.userId
-                name = calendar.name
-                color = calendar.color
-                icon = calendar.icon
-                position = calendar.position
-                isDefault = calendar.isDefault
-                createdAt = calendar.createdAt
-                updatedAt = calendar.updatedAt
+        translatingDatabaseErrors {
+            transaction {
+                CalendarEntity.new(calendar.id) {
+                    userId = calendar.userId
+                    name = calendar.name
+                    color = calendar.color
+                    icon = calendar.icon
+                    position = calendar.position
+                    isDefault = calendar.isDefault
+                    createdAt = calendar.createdAt
+                    updatedAt = calendar.updatedAt
+                }
+                return@transaction
             }
-            return@transaction
         }
     }
 }
