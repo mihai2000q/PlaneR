@@ -1,4 +1,4 @@
-package app.planer.shared.dto
+package app.planer.shared.common.responses
 
 import kotlinx.serialization.Serializable
 
