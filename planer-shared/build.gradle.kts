@@ -18,6 +18,7 @@ kotlin {
     sourceSets {
         commonMain.dependencies {
             api(libs.kotlinx.serialization.json)
+            api(libs.konform)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
