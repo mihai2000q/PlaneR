@@ -11,6 +11,11 @@ import io.ktor.server.routing.*
 
 fun Route.calendarRoutes(service: CalendarService) {
     route("/api/calendars") {
+        get {
+            val userId = call.requireUserId()
+            call.respond(service.getList(userId).toListResponse())
+        }
+
         post {
             val userId = call.requireUserId()
             val request = call.receive<CreateCalendarRequest>()

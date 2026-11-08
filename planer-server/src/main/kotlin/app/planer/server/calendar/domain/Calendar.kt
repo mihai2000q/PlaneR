@@ -14,4 +14,10 @@ data class Calendar(
     val isDefault: Boolean,
     val createdAt: Instant,
     val updatedAt: Instant,
-)
+) {
+
+    data class WithItemCount(
+        val calendar: Calendar,
+        val itemCount: Int,
+    )
+}

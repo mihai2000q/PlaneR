@@ -14,6 +14,8 @@ class CalendarService(
     private val clock: Clock = Clock.systemUTC(),
 ) {
 
+    suspend fun getList(userId: Uuid): List<Calendar.WithItemCount> = repository.findAllByUser(userId)
+
     @OptIn(ExperimentalUuidApi::class)
     suspend fun create(userId: Uuid, request: CreateCalendarRequest) {
         createCalendarRequestValidation.validateOrThrow(request)

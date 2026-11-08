@@ -4,6 +4,9 @@ import kotlin.uuid.Uuid
 
 interface CalendarRepository {
 
+    /** All of the user's calendars with their item counts, ordered by `position`. */
+    suspend fun findAllByUser(userId: Uuid): List<Calendar.WithItemCount>
+
     /** The highest `position` among the user's calendars, or `null` if the user has none. */
     suspend fun findLastPosition(userId: Uuid): Int?
 
