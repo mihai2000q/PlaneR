@@ -163,8 +163,13 @@ POST {{host}}/api/events
 
 **Response**
 
-The created event, same shape as **Get**. `routineStartAt` and per-step
-`startsAt`/`endsAt` are computed by the server.
+```json
+{
+  "message": "Event created."
+}
+```
+
+`routineStartAt` and the per-step `startsAt`/`endsAt` are computed by the server; read them with **Get**.
 
 **Errors**
 
@@ -203,8 +208,13 @@ update of individual steps — the client sends the full list every time.
 
 **Response**
 
-The updated event, same shape as **Get**, including the recomputed `routineStartAt`
-and routine step times. With `scope=future` it is the **new** series.
+```json
+{
+  "message": "Event updated."
+}
+```
+
+With `scope=future` the changes live in the **new** series; read the events again to get its id.
 
 **Errors**
 
@@ -239,9 +249,11 @@ becomes an [override](#override-occurrence)). Without it, the whole series is mo
 
 **Response**
 
-The updated event, same shape as **Get** (or, for a single occurrence, the occurrence
-as it now appears in **Get Collection**). The recomputed `routineStartAt` is included,
-so the client can update the grid without a refetch.
+```json
+{
+  "message": "Event moved."
+}
+```
 
 ---
 
@@ -291,7 +303,11 @@ replaces the previous override rather than merging into it.
 
 **Response**
 
-The occurrence as it now appears in **Get Collection**.
+```json
+{
+  "message": "Occurrence updated."
+}
+```
 
 **Errors**
 
@@ -354,7 +370,13 @@ All fields are optional. `scheduledFor`, `scheduledStartAt`, `scheduledEndAt`, a
 
 **Response**
 
-The newly created task, same shape as **Task → Get**.
+```json
+{
+  "message": "Event converted to task."
+}
+```
+
+The task has a new id; read the tasks to get it.
 
 ---
 

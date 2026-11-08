@@ -174,7 +174,11 @@ POST {{host}}/api/tasks
 
 **Response**
 
-The created task, same shape as **Get**.
+```json
+{
+  "message": "Task created."
+}
+```
 
 **Errors**
 
@@ -208,7 +212,13 @@ Any subset of the fields from **Create**.
 
 **Response**
 
-The updated task, same shape as **Get**. With `scope=future` it is the **new** series.
+```json
+{
+  "message": "Task updated."
+}
+```
+
+With `scope=future` the changes live in the **new** series; read the tasks again to get its id.
 
 ---
 
@@ -236,8 +246,11 @@ keeps the **original** `completedAt`.
 
 **Response**
 
-The task (or the occurrence), same shape as in **Get Collection**, with `completed: true`
-and `completedAt` set.
+```json
+{
+  "message": "Task completed."
+}
+```
 
 **Errors**
 
@@ -264,7 +277,11 @@ PUT {{host}}/api/tasks/{id}/uncomplete
 
 **Response**
 
-The task (or the occurrence), same shape as in **Get Collection**, with `completed: false`.
+```json
+{
+  "message": "Task uncompleted."
+}
+```
 
 ---
 
@@ -291,7 +308,11 @@ in the same call. The time-block rules from **Create** apply.
 
 **Response**
 
-The updated task, same shape as **Get**.
+```json
+{
+  "message": "Task scheduled."
+}
+```
 
 ---
 
@@ -306,7 +327,11 @@ PUT {{host}}/api/tasks/{id}/unschedule
 
 **Response**
 
-The updated task, same shape as **Get**.
+```json
+{
+  "message": "Task unscheduled."
+}
+```
 
 ---
 
@@ -406,7 +431,13 @@ All fields are optional.
 
 **Response**
 
-The newly created event, same shape as **Event → Get**.
+```json
+{
+  "message": "Task converted to event."
+}
+```
+
+The event has a new id; read the events to get it.
 
 ---
 
@@ -427,7 +458,11 @@ Completion is not an override — use [Complete](#complete).
 
 **Response**
 
-The occurrence as it now appears in **Get Collection**.
+```json
+{
+  "message": "Occurrence updated."
+}
+```
 
 ---
 
@@ -438,6 +473,14 @@ Marks a single occurrence of a recurring task as skipped, as for
 
 ```js
 DELETE {{host}}/api/tasks/{id}/occurrences/{date}
+```
+
+**Response**
+
+```json
+{
+  "message": "Occurrence skipped."
+}
 ```
 
 ---

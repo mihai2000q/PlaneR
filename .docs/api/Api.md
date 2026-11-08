@@ -52,9 +52,12 @@ exception is `bulk/shift`, which moves events by a delta and is therefore **not*
 
 ### Updates
 
-Partial updates use `PATCH`. `PUT` is used only for endpoints that set a specific piece of state (`/complete`,
-`/schedule`, `/position`, …). Every update that changes an event or task returns the **updated resource**, so the client
-never has to guess server-computed fields such as `routineStartAt`.
+Partial updates use `PATCH`. `PUT` is used for endpoints that set a specific piece of state (`/complete`, `/schedule`,
+`/position`, …) and for small resources replaced as a whole, such as a calendar (name, color and icon are all sent).
+
+Endpoints that create, update or delete something do **not** return the resource. They return a short `message` and,
+where it is useful, what happened (how many items were moved or deleted, which ids were not found). To see the result,
+the client reads the resource again; reads are the only place a resource is returned.
 
 ## Health
 

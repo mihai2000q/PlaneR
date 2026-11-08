@@ -65,7 +65,13 @@ PATCH {{host}}/api/users/me
 
 **Response**
 
-The updated user object, same shape as **Get Current User**.
+```json
+{
+  "message": "Profile updated."
+}
+```
+
+Read the profile with **Get Current User**.
 
 Changing `timezone` affects what "today" and "this week" mean from now on, and the
 default timezone of items created afterwards. It does **not** move existing events

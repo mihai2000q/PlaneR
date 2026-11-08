@@ -105,7 +105,11 @@ New calendars are appended to the end of the sidebar (`position = max + 1`).
 
 **Response**
 
-The created calendar, same shape as **Get**.
+```json
+{
+  "message": "Calendar created."
+}
+```
 
 **Errors**
 
@@ -116,7 +120,7 @@ The created calendar, same shape as **Get**.
 ## Update
 
 ```js
-PATCH {{host}}/api/calendars/{id}
+PUT {{host}}/api/calendars/{id}
 ```
 
 **Request**
@@ -129,14 +133,26 @@ PATCH {{host}}/api/calendars/{id}
 }
 ```
 
-All fields are optional; only provided fields are updated.
+Replaces the calendar's editable fields: all three are required, with the same rules as **Create**. A calendar has
+only three, so a full replacement is simpler than a partial update.
+
+| Field   | Required | Notes                                                                                     |
+|---------|----------|-------------------------------------------------------------------------------------------|
+| `name`  | yes      | 1–40 chars, trimmed, unique per user (case-insensitive, other calendars of this user)     |
+| `color` | yes      | Hex string matching `^#[0-9A-Fa-f]{6}$`                                                   |
+| `icon`  | yes      | Value from `CalendarIcon` enum                                                            |
 
 **Response**
 
-The updated calendar, same shape as **Get**.
+```json
+{
+  "message": "Calendar updated."
+}
+```
 
 **Errors**
 
+- `400 VALIDATION_ERROR` if a field is missing or invalid
 - `409 CONFLICT` if the new `name` collides with another calendar of this user
 
 ---
@@ -152,7 +168,11 @@ PUT {{host}}/api/calendars/{id}/default
 
 **Response**
 
-The updated calendar, same shape as **Get**.
+```json
+{
+  "message": "Default calendar updated."
+}
+```
 
 ---
 
@@ -205,7 +225,6 @@ DELETE {{host}}/api/calendars/{id}
 
 ```json
 {
-  "message": "Calendar deleted.",
   "movedItems": 12,
   "deletedItems": 0
 }
