@@ -315,9 +315,8 @@ month's **last day**. A yearly rule on 29 February falls on 28 February in non-l
 
 **Storage**
 
-`RecurrenceRule` is a value object, so it flattens onto the parent table as columns (`recurrence_frequency`,
-`recurrence_interval`, `recurrence_by_day`, `recurrence_by_month_day`, `recurrence_end_type`, `recurrence_until`,
-`recurrence_count`).
+`RecurrenceRule` is a value object, but it is stored in its own table (`recurrence_rules`), which `events` and `tasks`
+reference by foreign key (`recurrence_rule_id`; null means "not recurring").
 `byDay` is stored as a comma-separated string of ISO day codes (`MO,WE,FR`).
 See [Database](../infrastructure/Database.md).
 
