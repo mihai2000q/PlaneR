@@ -6,7 +6,7 @@ import org.jetbrains.exposed.v1.javatime.timestamp
 
 object CalendarTable : UuidTable("calendars") {
     val name = varchar("name", 255)
-    val color = text("color")
+    val color = varchar("color", 7)
     val icon = enumerationByName("icon", 20, CalendarIcon::class)
     val position = integer("position")
     val isDefault = bool("is_default")
