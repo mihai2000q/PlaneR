@@ -1,9 +1,12 @@
 package app.planer.server.common.plugins
 
+import app.planer.server.common.transactions.ExposedTransactionRunner
+import app.planer.server.common.transactions.TransactionRunner
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
 import io.ktor.server.application.Application
 import io.ktor.server.application.ApplicationStopped
+import io.ktor.server.plugins.di.dependencies
 import org.jetbrains.exposed.v1.jdbc.Database
 
 fun Application.configureDatabase() {
@@ -19,6 +22,7 @@ fun Application.configureDatabase() {
         },
     )
     Database.connect(dataSource)
+    dependencies { provide<TransactionRunner> { ExposedTransactionRunner() } }
 
     monitor.subscribe(ApplicationStopped) { dataSource.close() }
 }
