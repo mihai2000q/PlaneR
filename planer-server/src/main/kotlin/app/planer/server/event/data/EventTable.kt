@@ -12,7 +12,7 @@ object EventTable : UuidTable("events") {
     val location = varchar("location", 255).nullable()
     val startsAt = timestamp("starts_at")
     val endsAt = timestamp("ends_at")
-    val timeZone = varchar("time_zone", 64)
+    val timezone = varchar("timezone", 64)
     val allDay = bool("all_day").default(false)
     val createdAt = timestamp("created_at")
     val updatedAt = timestamp("updated_at")

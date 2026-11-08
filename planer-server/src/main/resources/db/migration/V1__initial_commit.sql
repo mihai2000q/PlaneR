@@ -81,8 +81,8 @@ CREATE TABLE events
     location           varchar(255),
     starts_at          timestamptz  NOT NULL,
     ends_at            timestamptz  NOT NULL,
-    time_zone          varchar(64)  NOT NULL,
-    all_day            boolean      NOT NULL DEFAULT false,
+    timezone           varchar(64)  NOT NULL,
+    all_day           boolean      NOT NULL DEFAULT false,
     created_at         timestamptz  NOT NULL,
     updated_at         timestamptz  NOT NULL,
     CONSTRAINT pk_events PRIMARY KEY (id),
@@ -96,6 +96,9 @@ CREATE TABLE events
 CREATE INDEX ix_events__user_id_starts_at ON events (user_id, starts_at);
 -- Finding the series to expand; stays small because it only holds recurring events.
 CREATE INDEX ix_events__user_id_recurring ON events (user_id, starts_at) WHERE recurrence_rule_id IS NOT NULL;
+-- Foreign keys: item counts per calendar, and ON DELETE SET NULL of calendars and recurrence rules.
+CREATE INDEX ix_events__calendar_id ON events (calendar_id);
+CREATE INDEX ix_events__recurrence_rule_id ON events (recurrence_rule_id);
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- event_preparation_steps (an event's routine)
@@ -128,8 +131,8 @@ CREATE TABLE tasks
     scheduled_for      date,
     scheduled_start_at timestamptz,
     scheduled_end_at   timestamptz,
-    time_zone          varchar(64)  NOT NULL,
-    completed          boolean      NOT NULL DEFAULT false,
+    timezone           varchar(64)  NOT NULL,
+    completed         boolean      NOT NULL DEFAULT false,
     completed_at       timestamptz,
     position           integer      NOT NULL DEFAULT 0,
     created_at         timestamptz  NOT NULL,
@@ -143,6 +146,9 @@ CREATE TABLE tasks
 CREATE INDEX ix_tasks__user_id_scheduled_for ON tasks (user_id, scheduled_for); -- My Day / This Week
 CREATE INDEX ix_tasks__user_id_due_at ON tasks (user_id, due_at);               -- Due and Overdue
 CREATE INDEX ix_tasks__user_id_completed ON tasks (user_id, completed, completed_at); -- Completed view and streak
+-- Foreign keys: item counts per calendar, and ON DELETE SET NULL of calendars and recurrence rules.
+CREATE INDEX ix_tasks__calendar_id ON tasks (calendar_id);
+CREATE INDEX ix_tasks__recurrence_rule_id ON tasks (recurrence_rule_id);
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- task_completions (per-occurrence completion of recurring tasks)
@@ -195,21 +201,22 @@ CREATE UNIQUE INDEX uq_recurrence_exceptions__task_id_occurrence_date
 -- ---------------------------------------------------------------------------------------------------------------------
 CREATE TABLE refresh_tokens
 (
-    id          uuid        NOT NULL,
-    user_id     uuid        NOT NULL,
-    family_id   uuid        NOT NULL, -- all tokens descending from one login share a family
-    token_hash  varchar(64) NOT NULL, -- SHA-256, hex encoded
-    created_at  timestamptz NOT NULL,
-    expires_at  timestamptz NOT NULL,
-    revoked_at  timestamptz,
-    replaced_by uuid,
+    id         uuid        NOT NULL,
+    user_id    uuid        NOT NULL,
+    family_id  uuid        NOT NULL, -- all tokens descending from one login share a family
+    token_hash varchar(64) NOT NULL, -- SHA-256, hex encoded
+    created_at timestamptz NOT NULL,
+    expires_at timestamptz NOT NULL,
+    revoked_at timestamptz,          -- set on rotation, logout and family revocation
     CONSTRAINT pk_refresh_tokens PRIMARY KEY (id),
-    CONSTRAINT fk_refresh_tokens__users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    -- Cleanup of old rows must not be blocked by the rotation chain.
-    CONSTRAINT fk_refresh_tokens__refresh_tokens FOREIGN KEY (replaced_by) REFERENCES refresh_tokens (id) ON DELETE SET NULL
+    CONSTRAINT fk_refresh_tokens__users FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE UNIQUE INDEX uq_refresh_tokens__token_hash ON refresh_tokens (token_hash);
+-- Revoking every token of a user (password change/reset, account deletion).
+CREATE INDEX ix_refresh_tokens__user_id ON refresh_tokens (user_id);
+-- Revoking a whole family on reuse detection.
+CREATE INDEX ix_refresh_tokens__family_id ON refresh_tokens (family_id);
 
 -- ---------------------------------------------------------------------------------------------------------------------
 -- one_time_tokens (email verification and password reset; only hashes are stored)
@@ -229,3 +236,5 @@ CREATE TABLE one_time_tokens
 );
 
 CREATE UNIQUE INDEX uq_one_time_tokens__token_hash ON one_time_tokens (token_hash);
+-- A new token invalidates the user's previous ones of the same purpose.
+CREATE INDEX ix_one_time_tokens__user_id_purpose ON one_time_tokens (user_id, purpose);

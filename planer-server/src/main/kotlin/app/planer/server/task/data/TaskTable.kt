@@ -14,7 +14,7 @@ object TaskTable : UuidTable("tasks") {
     val scheduledFor = date("scheduled_for").nullable()
     val scheduledStartAt = timestamp("scheduled_start_at").nullable()
     val scheduledEndAt = timestamp("scheduled_end_at").nullable()
-    val timeZone = varchar("time_zone", 64)
+    val timezone = varchar("timezone", 64)
     val completed = bool("completed").default(false)
     val completedAt = timestamp("completed_at").nullable()
     val position = integer("position").default(0)

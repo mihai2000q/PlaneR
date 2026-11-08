@@ -105,13 +105,13 @@ constraints are preferred for consistency.
 |---------------------------|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `users`                   | Accounts                                     | `email` (unique on `lower(email)`), `email_verified`, `pending_email`, `password_hash`, `display_name`, `avatar_url`, `timezone`                                                                               |
 | `calendars`               | Groupings                                    | `user_id`, `name`, `color`, `icon`, `position`, `is_default`. Unique on `(user_id, lower(name))`. A partial unique index on `(user_id)` where `is_default` guarantees exactly one default                      |
-| `events`                  | Events                                       | `user_id`, `calendar_id` (nullable), `title`, `description`, `location`, `starts_at`, `ends_at`, `time_zone`, `all_day`, `recurrence_rule_id` (nullable)
+| `events`                  | Events                                       | `user_id`, `calendar_id` (nullable), `title`, `description`, `location`, `starts_at`, `ends_at`, `timezone`, `all_day`, `recurrence_rule_id` (nullable)
 | `recurrence_rules`        | Recurrence of an event or task               | `frequency`, `interval`, `by_day`, `by_month_day`, `end_type`, `until`, `count`. Referenced by `events.recurrence_rule_id` and `tasks.recurrence_rule_id` |
 | `event_preparation_steps` | An event's routine                           | `event_id`, `name`, `duration`, `position`                                                                                                                                                                     |
-| `tasks`                   | Tasks                                        | `user_id`, `calendar_id` (nullable), `title`, `description`, `due_at`, `scheduled_for`, `scheduled_start_at`, `scheduled_end_at`, `time_zone`, `completed`, `completed_at`, `position`, `recurrence_rule_id` (nullable)
+| `tasks`                   | Tasks                                        | `user_id`, `calendar_id` (nullable), `title`, `description`, `due_at`, `scheduled_for`, `scheduled_start_at`, `scheduled_end_at`, `timezone`, `completed`, `completed_at`, `position`, `recurrence_rule_id` (nullable)
 | `task_completions`        | Per-occurrence completion of recurring tasks | `task_id`, `occurrence_date`, `completed_at`. Primary key `(task_id, occurrence_date)`                                                                                                                         |
 | `recurrence_exceptions`   | Overrides and skips of single occurrences    | `event_id` **or** `task_id` (a check enforces exactly one), `occurrence_date`, `skipped`, nullable override columns. Unique on `(event_id, occurrence_date)` and on `(task_id, occurrence_date)`               |
-| `refresh_tokens`          | Issued refresh tokens                        | `user_id`, `family_id`, `token_hash` (unique, SHA-256), `created_at`, `expires_at`, `revoked_at`, `replaced_by`                                                                                                |
+| `refresh_tokens`          | Issued refresh tokens                        | `user_id`, `family_id`, `token_hash` (unique, SHA-256), `created_at`, `expires_at`, `revoked_at`                                                                                                |
 | `one_time_tokens`         | Email verification and password reset        | `user_id`, `purpose`, `token_hash` (unique, SHA-256), `email`, `created_at`, `expires_at`, `used_at`                                                                                                           |
 
 Tokens are stored **only as hashes**; the raw values exist only in the emailed link or the client.
@@ -126,7 +126,6 @@ See [Security](../security/Security.md).
 | `event_preparation_steps.event_id` → `events`           | `CASCADE`  | Steps live and die with their event                                                                                                                                                                           |
 | `task_completions.task_id` → `tasks`                    | `CASCADE`  |                                                                                                                                                                                                               |
 | `recurrence_exceptions.event_id` / `task_id`            | `CASCADE`  |                                                                                                                                                                                                               |
-| `refresh_tokens.replaced_by` → `refresh_tokens`         | `SET NULL` | Cleanup of old rows must not be blocked by the chain                                                                                                                                                          |
 
 ### Preparation Steps Storage
 
@@ -172,7 +171,7 @@ recurring"**.
 | `by_day`       | varchar(20) | Comma-separated ISO day codes, e.g. `MO,WE,FR` (2 characters each, at most 7). Weekly only |
 | `by_month_day` | integer     | Monthly only                                                                               |
 | `end_type`     | varchar(16) | `NEVER`, `UNTIL`, `AFTER_COUNT`                                                            |
-| `until`        | date        | If `UNTIL`; inclusive, in the item's `time_zone`                                           |
+| `until`        | date        | If `UNTIL`; inclusive, in the item's `timezone`                                           |
 | `count`        | integer     | If `AFTER_COUNT`                                                                           |
 
 The foreign keys are `ON DELETE SET NULL`. Deleting an event or task does **not** delete its rule row (the reference
@@ -199,6 +198,11 @@ Indexes:
 | `ix_tasks__user_id_scheduled_for` on `(user_id, scheduled_for)`                                       | My Day / This Week                     |
 | `ix_tasks__user_id_due_at` on `(user_id, due_at)`                                                     | Due and Overdue                        |
 | `ix_tasks__user_id_completed` on `(user_id, completed, completed_at)`                                 | Completed view and the streak          |
+| `ix_events__calendar_id`, `ix_tasks__calendar_id` on `(calendar_id)`                                  | Item counts per calendar; calendar delete |
+| `ix_events__recurrence_rule_id`, `ix_tasks__recurrence_rule_id` on `(recurrence_rule_id)`             | Recurrence rule delete                 |
+| `ix_refresh_tokens__user_id` on `(user_id)`                                                           | Revoking all of a user's refresh tokens |
+| `ix_refresh_tokens__family_id` on `(family_id)`                                                       | Revoking a whole token family          |
+| `ix_one_time_tokens__user_id_purpose` on `(user_id, purpose)`                                         | Invalidating a user's earlier tokens   |
 
 These are the starting set. Add or change indexes only after measuring against the real queries.
 
