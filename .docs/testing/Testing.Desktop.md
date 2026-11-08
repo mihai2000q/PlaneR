@@ -21,11 +21,8 @@ Shared conventions (naming, Given/When/Then) are described in the [overview](Tes
 The e2e tests expect a working server and database. Follow
 the [server Get Started](../../planer-server/README.md#docker-containers) to:
 
-- create a `.env` file
-- start the containers with `docker compose up -d`
-- apply the migrations
-
-Alternatively, the `startup.sh` script at the repository root does all of this in one step.
+- create a `.env` file by copying `.env.dev`
+- start the containers with `docker compose up -d` (migrations are applied by the server on startup)
 
 ### Running the Tests
 

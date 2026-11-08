@@ -85,10 +85,15 @@ To get started on the application, you eventually need:
 - the **server** up and running with its dependencies (a database, planned)
 - and at least one of the platform applications (**Desktop** or **Android**)
 
-**Planned, not built yet:** the `startup.sh` script (launch the server and database containers in one step) and the
-`run-container.sh` script (run everything in containers without installing a JDK) exist but are **empty**, and there is
-no `docker-compose.yml` yet. Until they are written, follow the setup of each module below (only one of Desktop or
-Android is needed, depending on where you prefer to run the app).
+The quickest way to get the server and its database running is Docker, from the repository root:
+
+```sh
+cp .env.dev .env
+docker compose up -d
+```
+
+This starts both containers and needs no JDK. See the [server README](planer-server/README.md#docker-containers) for
+details. Then follow the setup of the platform application you prefer (only one of Desktop or Android is needed).
 
 ### Shared
 

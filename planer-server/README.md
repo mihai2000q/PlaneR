@@ -72,8 +72,8 @@ To get started on contributing to this project, you can do so by following the n
 
 ### Environment Variables
 
-> **Not built yet.** There is no `.env.dev` file, and the server currently reads only `SERVER_PORT`. The rest of this
-> section is the planned configuration.
+> **Partly built.** `.env.dev` exists and is used by `docker-compose.yml`, but the server currently reads only
+> `SERVER_PORT`. The rest of this section is the planned configuration.
 
 Create a `.env` file by copying the provided `.env.dev` file. This file contains the variables needed for the database
 container initialization and the application configuration.
@@ -98,19 +98,20 @@ variables.
 
 ### Docker Containers
 
-> **Not built yet.** There is no `docker-compose.yml`, and `startup.sh` and `run-container.sh` are empty. You do not
-> need Docker to run the server today.
+A `docker-compose.yml` file at the repository root starts the whole backend. It reads variables from `.env` and starts:
 
-A `docker-compose.yml` file will be provided at the repository root. It reads variables from `.env` and starts:
+- the **database** container (Postgres), with a healthcheck
+- the **server** container, built from `planer-server/Dockerfile`, which waits for the database to be healthy
 
-- the **database** container (Postgres)
-- the **server** container (running in development mode by default)
-
-From the repository root, run:
+From the repository root, copy the environment file and start the containers:
 
 ```sh
+cp .env.dev .env
 docker compose up -d
 ```
+
+Check that everything is healthy with `docker compose ps`. To stop, run `docker compose down` (add `-v` to also delete
+the database volume).
 
 If you want to run only the database and let the server run from your IDE, use:
 
@@ -417,9 +418,9 @@ Alternatively, the flag can be set explicitly:
 ./gradlew :planer-server:run -Dio.ktor.development=true
 ```
 
-When running via Docker, the `docker-compose.yml` file enables development mode by default. Editing the source code on
-the host still requires rebuilding the container image — for the fastest loop, run the server from the IDE or CLI
-against a containerized database.
+The server container runs the packaged JAR, so editing the source code on the host requires rebuilding the image
+(`docker compose up -d --build server`). For the fastest loop, run the server from the IDE or CLI against the
+containerized database (`docker compose up -d database`).
 
 For more configuration options, check the `application.conf` file under `src/main/resources`, which is already included
 in the application.
