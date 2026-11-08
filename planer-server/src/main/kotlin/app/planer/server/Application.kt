@@ -1,7 +1,5 @@
 package app.planer.server
 
-import app.planer.server.calendar.data.CalendarRepositoryImpl
-import app.planer.server.calendar.domain.CalendarService
 import app.planer.server.common.plugins.*
 import io.ktor.server.application.Application
 
@@ -9,5 +7,6 @@ import io.ktor.server.application.Application
 fun Application.module() {
     configureDatabase()
     configureSerialization()
+    configureErrorHandling()
     configureRouting()
 }

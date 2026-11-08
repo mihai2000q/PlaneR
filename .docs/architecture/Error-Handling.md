@@ -61,6 +61,7 @@ if the two ever differ, this is a bug in the docs.
 | `INVALID_CREDENTIALS` | 401    | Wrong email/password at login, or wrong current password when confirming a sensitive action |
 | `FORBIDDEN`           | 403    | Token valid, but the account state does not allow the action (e.g., unverified)             |
 | `NOT_FOUND`           | 404    | Resource does not exist or is not owned by the user                                         |
+| `METHOD_NOT_ALLOWED`  | 405    | The URL exists but does not support the HTTP method used                                    |
 | `CONFLICT`            | 409    | Unique constraint violated (e.g., duplicate email) or a state-based conflict                |
 | `UPGRADE_REQUIRED`    | 426    | The client version is below the server's minimum                                            |
 | `RATE_LIMITED`        | 429    | Too many requests. Response carries a `Retry-After` header.                                 |

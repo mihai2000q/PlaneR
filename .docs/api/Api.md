@@ -227,6 +227,7 @@ Codes:
 | 401    | `INVALID_CREDENTIALS` | Wrong email/password at login, or wrong current password when confirming a sensitive action               |
 | 403    | `FORBIDDEN`           | Account-state failure (unverified, suspended, missing capability)                                         |
 | 404    | `NOT_FOUND`           | Resource does not exist or is not owned by the caller                                                     |
+| 405    | `METHOD_NOT_ALLOWED`  | The URL exists but does not support the HTTP method used                                                  |
 | 409    | `CONFLICT`            | Unique constraint violated, or a state-based conflict                                                     |
 | 426    | `UPGRADE_REQUIRED`    | Client version is below the minimum — see [Versioning and Forced Updates](#versioning-and-forced-updates) |
 | 429    | `RATE_LIMITED`        | Too many requests — see [Rate Limiting](#rate-limiting). Includes a `Retry-After` header.                 |
