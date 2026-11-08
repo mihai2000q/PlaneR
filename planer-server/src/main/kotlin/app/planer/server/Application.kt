@@ -9,4 +9,5 @@ fun Application.module() {
     configureSerialization()
     configureErrorHandling()
     configureRouting()
+    configureModules()
 }
