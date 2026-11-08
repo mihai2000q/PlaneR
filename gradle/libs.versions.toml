@@ -70,3 +70,4 @@ compose-desktop = { id = "org.jetbrains.compose", version.ref = "composeDesktop"
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-kotlin-multiplatform-library = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
 ktor = { id = "io.ktor.plugin", version.ref = "ktor" }
+flyway = { id = "org.flywaydb.flyway", version.ref = "flyway" }
