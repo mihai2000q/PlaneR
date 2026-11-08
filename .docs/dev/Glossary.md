@@ -145,7 +145,7 @@ The iCalendar standard notation for recurrence rules. PlaneR's `RecurrenceRule` 
 not use the string syntax.
 
 **Flyway**
-The database migration tool. Applies versioned SQL files at startup.
+The database migration tool. Applies versioned SQL files, as a separate step before the server starts.
 
 **Ktor**
 The Kotlin HTTP framework used for both the server and the client networking layer.

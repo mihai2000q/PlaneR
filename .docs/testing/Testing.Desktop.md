@@ -22,7 +22,7 @@ The e2e tests expect a working server and database. Follow
 the [server Get Started](../../planer-server/README.md#docker-containers) to:
 
 - create a `.env` file by copying `.env.dev`
-- start the containers with `docker compose up -d` (migrations are applied by the server on startup)
+- start the containers with `docker compose up -d` (the `migrate` container applies the migrations before the server starts)
 
 ### Running the Tests
 

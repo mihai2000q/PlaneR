@@ -119,9 +119,9 @@ If you want to run only the database and let the server run from your IDE, use:
 docker compose up -d database
 ```
 
-The database starts empty. You do not need to prepare it: **the server applies all pending Flyway migrations
-automatically on startup**, wherever it runs — in a container, from the IDE, or from the CLI. To apply migrations
-without starting the server, see [Migration](#migration).
+The database starts empty. With `docker compose up -d`, a one-shot `migrate` container applies all pending Flyway
+migrations before the server starts. **The server does not migrate by itself**, so when you run it from the IDE or the
+CLI against `docker compose up -d database`, apply the migrations first — see [Migration](#migration).
 
 ### Restore Dependencies
 
@@ -230,7 +230,7 @@ src/main/kotlin/app/planer/server/
 ├── config/             # Config loading
 ├── service/            # Business logic — TBD
 ├── repository/         # Data access — TBD
-├── database/           # Exposed table definitions, Flyway glue
+├── database/           # Exposed table definitions, connection setup
 └── security/           # JWT, password hashing
 src/main/resources/
 ├── application-test.conf   # Configuration for integration tests
@@ -322,28 +322,25 @@ out the [Database documentation](../.docs/infrastructure/Database.md). Data acce
 
 ### Migration
 
-> **Not built yet.** There is no database, no Flyway dependency, and no `flywayMigrate` task. This section describes the
-> planned setup.
-
 **Flyway** is the database migration tool. Migration files are versioned SQL scripts under
-`src/main/resources/db/migration/` and are applied automatically at startup, keeping the schema in sync with the
-codebase. Applied migrations are never edited; mistakes are fixed with a new migration (Flyway Community has no undo —
-see [Database → Rolling Back](../.docs/infrastructure/Database.md#rolling-back)).
+`src/main/resources/db/migration/`. Applied migrations are never edited; mistakes are fixed with a new migration
+(Flyway Community has no undo — see [Database → Rolling Back](../.docs/infrastructure/Database.md#rolling-back)).
 
-To apply migrations without starting the server:
-
-```sh
-./gradlew :planer-server:flywayMigrate
-```
-
-Migration files follow the naming convention `V{version}__{description}.sql`. To inspect the current migration state:
+The server does not apply migrations at startup. They are a separate step:
 
 ```sh
-./gradlew :planer-server:flywayInfo
+./gradlew :planer-server:flywayMigrate   # apply pending migrations
+./gradlew :planer-server:flywayInfo      # show applied and pending migrations
+./gradlew :planer-server:flywayClean     # drop everything (development only)
 ```
 
-The `apply-database-migrations.sh` shell script wraps the Gradle task and reads the connection details from `.env`, so
-it can be used without any extra configuration.
+The database must be running (`docker compose up -d database`). The connection is read from the `DB_*` environment
+variables and defaults to the development values. In containers, the `migrate` service of `docker-compose.yml` does
+this automatically on `docker compose up -d` and can run other commands on demand
+(`docker compose run --rm migrate info`, `... migrate clean`).
+
+Migration files follow the naming convention `V{version}__{description}.sql`. The full workflow, including how to
+rebuild the development database, is in [Database → Migrations](../.docs/infrastructure/Database.md#migrations).
 
 ## Testing
 

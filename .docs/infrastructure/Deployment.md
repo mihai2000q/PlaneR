@@ -91,7 +91,8 @@ The server is deployed as a **Docker image**, built and pushed automatically whe
 3. The image is tagged with the version and `latest`, then pushed to Docker Hub.
 4. The workflow connects to the VM over **SSH** (using a deploy key stored as a GitHub Secret) and runs
    `docker compose -f docker-compose.prod.yml pull` followed by `up -d`.
-5. On startup, the server applies pending Flyway migrations before it serves any request.
+5. Before the new server version starts, a migration step (the `flyway/flyway` image against the production database)
+   applies pending Flyway migrations. The server itself does not migrate.
 6. The workflow polls `GET /health` until it returns `200`, and fails the deployment if it does not within a few
    minutes.
 

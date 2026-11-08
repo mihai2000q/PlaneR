@@ -157,7 +157,7 @@ the codebase takes shape.
 ### Persistence
 
 Data is stored in **PostgreSQL**, accessed through **Exposed**. Migrations are versioned with **Flyway** and applied
-automatically at startup, in every environment.
+by a separate step that runs before the server starts (Gradle in development, a one-shot container in Docker).
 See [Database](../infrastructure/Database.md) for the schema, naming conventions, and migration workflow.
 
 ### Computed timelines
