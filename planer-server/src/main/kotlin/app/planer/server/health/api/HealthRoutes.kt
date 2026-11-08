@@ -1,4 +1,4 @@
-package app.planer.server.route
+package app.planer.server.health.api
 
 import app.planer.shared.dto.HealthResponse
 import io.ktor.server.response.respond

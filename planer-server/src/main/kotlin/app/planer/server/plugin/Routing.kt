@@ -1,6 +1,6 @@
 package app.planer.server.plugin
 
-import app.planer.server.route.healthRoutes
+import app.planer.server.health.api.healthRoutes
 import io.ktor.server.application.Application
 import io.ktor.server.routing.routing
 
