@@ -132,13 +132,27 @@ DTOs are serialized with **kotlinx.serialization**.
 
 ### Validation
 
-> Today this contains three rules: a title of 1–120 characters, a calendar name of 1–40 characters, and a `#RRGGBB`
-> color. The rest come with the controllers that need them.
+> Today the shared rules are a title of 1–120 characters and a `#RRGGBB` color. The calendar name rule (1–40
+> characters) lives in `calendar/validation/`, since only calendars use it, next to the one schema so far: the calendar
+> create request. The rest come with the controllers that need them.
 
 Rules like "title is 1–120 characters", "`endsAt` must be after `startsAt`", "color matches `^#[0-9A-Fa-f]{6}$`".
 
 Validating on both client (for immediate UI feedback) and server (as the source of truth) using the same code eliminates
 drift between the two. Validation rules are pure Kotlin and have no dependencies on either side.
+
+There are two layers:
+
+- **Rules** are small functions and constants, such as `isValidHexColor` and the maximum lengths. They are the single
+  definition of each limit. Rules used by several features are in `validation/ValidationRules.kt`; a rule that only one
+  feature uses lives in that feature (for example `calendar/validation/CalendarValidationRules.kt`).
+- **Request schemas** are built with [Konform](https://github.com/konform-kt/konform), a Kotlin Multiplatform validation
+  library, and live next to the feature they validate (for example `calendar/validation/`). A schema declares which
+  rules apply to which field of a request, and returns the errors keyed by field. `toFieldErrors()` turns a result into
+  the `errors` object of a `VALIDATION_ERROR`.
+
+Konform only validates: it does not parse or trim. Parsing is `kotlinx.serialization`'s job, and a rule that depends on
+trimming (such as the name length) trims inside the rule.
 
 ### Network
 
