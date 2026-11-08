@@ -1,4 +1,4 @@
-package app.planer.shared.calendar
+package app.planer.server.calendar.domain
 
 import app.planer.shared.calendar.enums.CalendarIcon
 import java.time.Instant
