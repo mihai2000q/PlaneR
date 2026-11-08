@@ -234,8 +234,6 @@ These are things the architecture does not commit to yet, and that will be settl
 
 1. **Server internal layout.** Whether to use explicit use cases, whether to split into named layers, how far to
    abstract the data access.
-2. ~~**Database schema and ORM.**~~ **Resolved:** Exposed (DSL), with the schema owned by Flyway migrations.
-   See [Database](../infrastructure/Database.md#data-access).
 
 ### Authentication
 

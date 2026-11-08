@@ -318,7 +318,7 @@ For more on the token model — signing, refresh, revocation, and expiry — see
 The database chosen for this application infrastructure is **PostgreSQL**.
 
 For more information about the database — naming conventions, schema, indexes, and value-object storage — please check
-out the [Database documentation](../.docs/infrastructure/Database.md). Data access uses **Exposed** (DSL).
+out the [Database documentation](../.docs/infrastructure/Database.md). Data access uses **Exposed** (DAO).
 
 ### Migration
 
