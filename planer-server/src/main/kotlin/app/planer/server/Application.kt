@@ -8,6 +8,5 @@ fun Application.module() {
     configureDatabase()
     configureSerialization()
     configureErrorHandling()
-    configureRouting()
     configureModules()
 }
