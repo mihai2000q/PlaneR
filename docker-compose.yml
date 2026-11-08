@@ -19,6 +19,25 @@ services:
       retries: 10
       start_period: 10s
 
+  # One-shot job: applies pending migrations, then exits. The server starts only after it succeeds.
+  #   docker compose run --rm migrate info    # show migration state
+  #   docker compose run --rm migrate clean   # drop everything (development only; enabled below)
+  migrate:
+    image: flyway/flyway:13-alpine
+    container_name: planer-migrate
+    depends_on:
+      database:
+        condition: service_healthy
+    environment:
+      FLYWAY_URL: jdbc:postgresql://database:5432/${DB_NAME:-planer}
+      FLYWAY_USER: ${DB_USER:-planer}
+      FLYWAY_PASSWORD: ${DB_PASSWORD:-planer}
+      FLYWAY_LOCATIONS: filesystem:/flyway/sql
+      FLYWAY_CLEAN_DISABLED: "false"
+    volumes:
+      - ./planer-server/src/main/resources/db/migration:/flyway/sql:ro
+    command: migrate
+
   server:
     build:
       context: .
@@ -28,6 +47,8 @@ services:
     depends_on:
       database:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     environment:
       # Inside the compose network the database is reachable by its service name, not localhost.
       DB_HOST: database
