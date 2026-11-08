@@ -13,7 +13,7 @@ import io.ktor.server.routing.routing
 fun Application.calendarModule() {
     dependencies {
         provide<CalendarRepository> { CalendarRepositoryImpl() }
-        provide<CalendarService> { CalendarService(resolve()) }
+        provide<CalendarService> { CalendarService(resolve(), resolve(), resolve(), resolve()) }
     }
 
     val service: CalendarService by dependencies

@@ -232,5 +232,5 @@ DELETE {{host}}/api/calendars/{id}
 
 **Errors**
 
-- `400 VALIDATION_ERROR` if the user tries to delete the default calendar (set another one as default first)
 - `400 VALIDATION_ERROR` if `mode=reassign` and `targetCalendarId` is missing or invalid
+- `409 CONFLICT` if the user tries to delete the default calendar (set another one as default first)

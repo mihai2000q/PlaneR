@@ -1,20 +1,36 @@
 package app.planer.server.calendar.domain
 
 import app.planer.server.common.errors.ConflictException
+import app.planer.server.common.errors.NotFoundException
 import app.planer.server.common.errors.UniqueViolationException
+import app.planer.server.common.errors.ValidationException
+import app.planer.server.common.transactions.TransactionRunner
 import app.planer.server.common.validation.validateOrThrow
+import app.planer.server.event.domain.EventRepository
+import app.planer.server.task.domain.TaskRepository
+import app.planer.shared.calendar.enums.CalendarDeleteMode
 import app.planer.shared.calendar.requests.CreateCalendarRequest
+import app.planer.shared.calendar.requests.DeleteCalendarRequest
+import app.planer.shared.calendar.requests.UpdateCalendarRequest
 import app.planer.shared.calendar.validation.createCalendarRequestValidation
+import app.planer.shared.calendar.validation.deleteCalendarRequestValidation
+import app.planer.shared.calendar.validation.updateCalendarRequestValidation
 import java.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 
 class CalendarService(
     private val repository: CalendarRepository,
+    private val eventRepository: EventRepository,
+    private val taskRepository: TaskRepository,
+    private val transactions: TransactionRunner,
     private val clock: Clock = Clock.systemUTC(),
 ) {
 
     suspend fun getList(userId: Uuid): List<Calendar.WithItemCount> = repository.findAllByUser(userId)
+
+    suspend fun get(userId: Uuid, calendarId: Uuid): Calendar =
+        repository.findById(userId, calendarId) ?: throw NotFoundException("Calendar not found.")
 
     @OptIn(ExperimentalUuidApi::class)
     suspend fun create(userId: Uuid, request: CreateCalendarRequest) {
@@ -42,4 +58,80 @@ class CalendarService(
             throw ConflictException(e.message ?: "A calendar with that name already exists.")
         }
     }
+
+    suspend fun update(userId: Uuid, calendarId: Uuid, request: UpdateCalendarRequest) {
+        updateCalendarRequestValidation.validateOrThrow(request)
+
+        val calendar = get(userId, calendarId)
+        val updated = calendar.copy(
+            name = request.name.trim(),
+            color = request.color,
+            icon = request.icon,
+            updatedAt = clock.instant(),
+        )
+
+        try {
+            repository.update(updated)
+        } catch (e: UniqueViolationException) {
+            throw ConflictException(e.message ?: "A calendar with that name already exists.")
+        }
+    }
+
+    suspend fun setDefault(userId: Uuid, calendarId: Uuid) {
+        val calendar = get(userId, calendarId)
+        if (calendar.isDefault) return
+
+        repository.setDefault(userId, calendarId, clock.instant())
+    }
+
+    suspend fun delete(userId: Uuid, request: DeleteCalendarRequest): DeletionResult {
+        deleteCalendarRequestValidation.validateOrThrow(request)
+
+        val calendarId = request.id
+        val calendar = get(userId, calendarId)
+        if (calendar.isDefault) {
+            throw ConflictException(
+                "the default calendar cannot be deleted; make another calendar the default first"
+            )
+        }
+
+        // The calendar, its events and its tasks change together, or not at all.
+        val result = transactions.run {
+            val result = when (request.mode) {
+                CalendarDeleteMode.UNASSIGN -> moveItems(calendarId, to = null)
+                CalendarDeleteMode.REASSIGN -> moveItems(
+                    calendarId,
+                    to = requireTarget(userId, request.targetCalendarId!!)
+                )
+
+                CalendarDeleteMode.CASCADE -> DeletionResult(
+                    movedItems = 0,
+                    deletedItems = eventRepository.deleteByCalendar(calendarId) + taskRepository.deleteByCalendar(
+                        calendarId
+                    ),
+                )
+            }
+            repository.delete(calendarId)
+            result
+        }
+        return result
+    }
+
+    private suspend fun moveItems(calendarId: Uuid, to: Uuid?) = DeletionResult(
+        movedItems = eventRepository.changeCalendar(calendarId, to) + taskRepository.changeCalendar(calendarId, to),
+        deletedItems = 0,
+    )
+
+    private suspend fun requireTarget(userId: Uuid, targetCalendarId: Uuid): Uuid {
+        if (repository.findById(userId, targetCalendarId) == null) {
+            throw ValidationException(mapOf("targetCalendarId" to listOf("must be one of your calendars")))
+        }
+        return targetCalendarId
+    }
+
+    data class DeletionResult(
+        /** Items that lost the calendar: reassigned to another one, or left without one. */
+        val movedItems: Int,
+        val deletedItems: Int,
+    )
 }

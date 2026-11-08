@@ -8,19 +8,23 @@ import app.planer.server.event.data.EventTable
 import app.planer.server.task.data.TaskTable
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import org.jetbrains.exposed.v1.core.and
 import org.jetbrains.exposed.v1.core.count
 import org.jetbrains.exposed.v1.core.dao.id.EntityID
 import org.jetbrains.exposed.v1.core.eq
 import org.jetbrains.exposed.v1.core.max
 import org.jetbrains.exposed.v1.core.wrapAsExpression
+import org.jetbrains.exposed.v1.jdbc.deleteWhere
 import org.jetbrains.exposed.v1.jdbc.select
-import org.jetbrains.exposed.v1.jdbc.transactions.transaction
+import org.jetbrains.exposed.v1.jdbc.transactions.suspendTransaction
+import org.jetbrains.exposed.v1.jdbc.update
+import java.time.Instant
 import kotlin.uuid.Uuid
 
 class CalendarRepositoryImpl : CalendarRepository {
 
     override suspend fun findAllByUser(userId: Uuid): List<Calendar.WithItemCount> = withContext(Dispatchers.IO) {
-        transaction {
+        suspendTransaction {
             // One query: the counts are scalar subqueries next to the calendar columns.
             val eventCount = wrapAsExpression<Long>(
                 EventTable
@@ -46,8 +50,53 @@ class CalendarRepositoryImpl : CalendarRepository {
         }
     }
 
+    override suspend fun findById(userId: Uuid, calendarId: Uuid): Calendar? = withContext(Dispatchers.IO) {
+        suspendTransaction {
+            CalendarEntity
+                .find { (CalendarTable.id eq calendarId) and (CalendarTable.userId eq userId) }
+                .singleOrNull()
+                ?.toDomain()
+        }
+    }
+
+    override suspend fun update(calendar: Calendar) = withContext(Dispatchers.IO) {
+        translatingDatabaseErrors {
+            suspendTransaction {
+                CalendarEntity.findById(calendar.id)?.let {
+                    it.name = calendar.name
+                    it.color = calendar.color
+                    it.icon = calendar.icon
+                    it.updatedAt = calendar.updatedAt
+                }
+                return@suspendTransaction
+            }
+        }
+    }
+
+    override suspend fun setDefault(userId: Uuid, calendarId: Uuid, updatedAt: Instant) = withContext(Dispatchers.IO) {
+        suspendTransaction {
+            // Unset first: a unique index allows at most one default per user.
+            CalendarTable.update({ (CalendarTable.userId eq userId) and (CalendarTable.isDefault eq true) }) {
+                it[CalendarTable.isDefault] = false
+                it[CalendarTable.updatedAt] = updatedAt
+            }
+            CalendarTable.update({ CalendarTable.id eq calendarId }) {
+                it[CalendarTable.isDefault] = true
+                it[CalendarTable.updatedAt] = updatedAt
+            }
+            return@suspendTransaction
+        }
+    }
+
+    override suspend fun delete(calendarId: Uuid) = withContext(Dispatchers.IO) {
+        suspendTransaction {
+            CalendarTable.deleteWhere { CalendarTable.id eq calendarId }
+            return@suspendTransaction
+        }
+    }
+
     override suspend fun findLastPosition(userId: Uuid): Int? = withContext(Dispatchers.IO) {
-        transaction {
+        suspendTransaction {
             val lastPosition = CalendarTable.position.max()
             CalendarTable
                 .select(lastPosition)
@@ -58,7 +107,7 @@ class CalendarRepositoryImpl : CalendarRepository {
 
     override suspend fun create(calendar: Calendar) = withContext(Dispatchers.IO) {
         translatingDatabaseErrors {
-            transaction {
+            suspendTransaction {
                 CalendarEntity.new(calendar.id) {
                     userId = EntityID(calendar.userId, UserTable)
                     name = calendar.name
@@ -69,7 +118,7 @@ class CalendarRepositoryImpl : CalendarRepository {
                     createdAt = calendar.createdAt
                     updatedAt = calendar.updatedAt
                 }
-                return@transaction
+                return@suspendTransaction
             }
         }
     }
