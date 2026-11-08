@@ -198,26 +198,28 @@ The migration tool chosen for this application is **Flyway**.
 Flyway runs versioned SQL scripts and tracks which have already been applied
 in a `flyway_schema_history` table.
 
-**The server applies pending migrations automatically on startup, in every environment** — development, tests, and
-production — before it begins serving requests. The Gradle tasks below exist for running migrations *without* starting
-the server (for example, to inspect or prepare a database).
+**The server does not apply migrations itself.** Migrating is a separate step that runs *before* the server starts, in
+every environment: through Gradle during development, through the one-shot `migrate` service in `docker-compose.yml`
+when running in containers, and as a pipeline step in production (see [Deployment](Deployment.md#server-deployment)).
+A server started against a database that has not been migrated fails on its first query (`relation ... does not
+exist`), so run the migration first.
 
 ### Flyway Setup
 
-Flyway runs inside the server at startup, using the Flyway library with the PostgreSQL module (`flyway-core` and, since
-Flyway 10, `flyway-database-postgresql`).
+Flyway is used in two ways, both reading the same files:
 
-For manual use, the same migrations are exposed through a **Gradle task** so that developers do not need to install a
-separate CLI. The plugin is declared in the server module's build script:
+- **Gradle plugin** (`org.flywaydb.flyway`), for local development. It is declared in the version catalog, applied in
+  `planer-server/build.gradle.kts`, and configured by its `flyway { }` block. The connection comes from the same
+  variables as the server (`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`), with the development defaults
+  from [Connection Configuration](#connection-configuration) when they are not set. The block also sets
+  `cleanDisabled = false`, which is acceptable because it is the development configuration only.
+- **`flyway/flyway` Docker image**, for containers. The `migrate` service in `docker-compose.yml` mounts the migration
+  folder, waits for the database to be healthy, applies pending migrations, and exits. The `server` service starts only
+  after it has completed successfully.
 
-```kotlin
-plugins {
-    id("org.flywaydb.flyway") version "<current 10.x release>"
-}
-```
-
-Connection details are read from the `.env` file, so the same task works for any developer
-without editing the build script.
+Flyway 10 and later keep database support in separate modules, so the root `build.gradle.kts` adds
+`flyway-database-postgresql` to the build classpath for the plugin. This is not an application dependency: the server
+itself does not contain Flyway.
 
 Migration files are placed under:
 
@@ -260,24 +262,39 @@ the second one to merge must rename their file to the next available version.
 
 ### Apply Migration
 
-To apply all pending migrations against the configured database without starting the server, run:
+From the repository root, with the database container running (`docker compose up -d database`):
+
+| Command                                   | What it does                                                    |
+|-------------------------------------------|-----------------------------------------------------------------|
+| `./gradlew :planer-server:flywayMigrate`  | Applies every pending migration                                 |
+| `./gradlew :planer-server:flywayInfo`     | Shows which migrations are applied and which are pending        |
+| `./gradlew :planer-server:flywayValidate` | Checks the applied migrations against the files (checksums)     |
+| `./gradlew :planer-server:flywayClean`    | **Drops everything** in the database. Development only          |
+| `./gradlew :planer-server:flywayRepair`   | Fixes the history table after a failed migration; rarely needed |
+
+To rebuild the development database from scratch:
 
 ```sh
-./gradlew :planer-server:flywayMigrate
+./gradlew :planer-server:flywayClean :planer-server:flywayMigrate
 ```
 
-This reads the connection details from the environment and applies every migration
-that has not yet been recorded in `flyway_schema_history`.
-
-To inspect the state of the schema without changing anything:
+When everything runs in containers, `docker compose up -d` already applies pending migrations (the `migrate` service
+runs before the server). The same service runs other commands on demand:
 
 ```sh
-./gradlew :planer-server:flywayInfo
+docker compose run --rm migrate info      # migration state
+docker compose run --rm migrate migrate   # apply pending migrations again, e.g. after adding a file
+docker compose run --rm migrate clean     # drop everything (development only)
 ```
+
+`docker compose down -v` is the blunt alternative: it deletes the database volume, and the next `up` starts from an
+empty database and migrates it.
+
+On Windows PowerShell or `cmd`, use `gradlew.bat` instead of `./gradlew`.
 
 ### Apply Migration — with the connection flag
 
-If the target database is not the one configured in the environment, Flyway accepts connection
+If the target database is not the one configured in the environment, the Gradle plugin accepts connection
 details as task parameters:
 
 ```sh
@@ -295,10 +312,8 @@ By default, for local development:
 - **database_user** is `planer`
 - **database_password** is `planer`
 
-Check the `.env` file if these have been changed.
-
-Alternatively, the `apply-database-migrations.sh` shell script can be used,
-which wraps the Gradle task with the values from `.env`.
+Check the `.env` file if these have been changed. Gradle does not read `.env` itself; export the variables in your
+shell, or pass the flags above.
 
 ### Rolling Back
 
@@ -309,13 +324,15 @@ approach:
 - **Make migrations safe to deploy.** Prefer additive changes (new nullable columns, new tables); split destructive
   changes (dropping a column) into a later migration, after no running version uses it.
 - **Back up before a risky migration** in production (see [Deployment → Backups](Deployment.md#backups)).
-- In development, `flywayClean` plus `flywayMigrate` rebuilds the database from scratch. `clean` is disabled by default
-  and is enabled only in the development configuration.
+- In development, `flywayClean` plus `flywayMigrate` rebuilds the database from scratch (or
+  `docker compose run --rm migrate clean`, then `up`). `clean` is disabled by default in Flyway and is enabled only in
+  the development configuration.
 
 ## Connection Configuration
 
-The server reads its database connection from environment variables,
-which are loaded from the `.env` file at startup.
+The server reads its database connection from environment variables, through the `database { }` block of
+`application.conf`, which falls back to the development defaults below. Docker Compose turns `.env` into those
+environment variables for the containers. The Flyway Gradle plugin reads the same variables.
 
 | Variable      | Purpose           | Default (dev) |
 |---------------|-------------------|---------------|
