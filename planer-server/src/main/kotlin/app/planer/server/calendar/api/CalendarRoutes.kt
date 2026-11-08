@@ -6,6 +6,7 @@ import app.planer.server.common.http.receiveQuery
 import app.planer.server.common.http.requirePathUuid
 import app.planer.shared.calendar.requests.CreateCalendarRequest
 import app.planer.shared.calendar.requests.DeleteCalendarRequest
+import app.planer.shared.calendar.requests.ReorderCalendarRequest
 import app.planer.shared.calendar.requests.UpdateCalendarRequest
 import app.planer.shared.calendar.responses.DeleteCalendarResponse
 import app.planer.shared.common.responses.HttpMessageResponse
@@ -48,6 +49,14 @@ fun Route.calendarRoutes(service: CalendarService) {
                 val id = call.requirePathUuid("id")
                 service.setDefault(userId, id)
                 call.respond(HttpMessageResponse("Default calendar updated."))
+            }
+
+            put("/position") {
+                val userId = call.requireUserId()
+                val id = call.requirePathUuid("id")
+                val request = call.receive<ReorderCalendarRequest>()
+                service.reorder(userId, id, request)
+                call.respond(HttpMessageResponse("Position updated."))
             }
 
             delete {

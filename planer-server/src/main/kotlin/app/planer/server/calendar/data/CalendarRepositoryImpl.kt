@@ -88,6 +88,36 @@ class CalendarRepositoryImpl : CalendarRepository {
         }
     }
 
+    override suspend fun findOrderedIds(userId: Uuid): List<Uuid> = withContext(Dispatchers.IO) {
+        suspendTransaction {
+            CalendarTable
+                .select(CalendarTable.id)
+                .where { CalendarTable.userId eq userId }
+                .orderBy(CalendarTable.position)
+                .map { it[CalendarTable.id].value }
+        }
+    }
+
+    override suspend fun updatePositions(positions: Map<Uuid, Int>) = withContext(Dispatchers.IO) {
+        suspendTransaction {
+            positions.forEach { (calendarId, position) ->
+                CalendarTable.update({ CalendarTable.id eq calendarId }) { it[CalendarTable.position] = position }
+            }
+            return@suspendTransaction
+        }
+    }
+
+    override suspend fun updatePosition(calendarId: Uuid, position: Int, updatedAt: Instant) =
+        withContext(Dispatchers.IO) {
+            suspendTransaction {
+                CalendarTable.update({ CalendarTable.id eq calendarId }) {
+                    it[CalendarTable.position] = position
+                    it[CalendarTable.updatedAt] = updatedAt
+                }
+                return@suspendTransaction
+            }
+        }
+
     override suspend fun delete(calendarId: Uuid) = withContext(Dispatchers.IO) {
         suspendTransaction {
             CalendarTable.deleteWhere { CalendarTable.id eq calendarId }

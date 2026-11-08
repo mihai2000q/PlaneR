@@ -11,9 +11,11 @@ import app.planer.server.task.domain.TaskRepository
 import app.planer.shared.calendar.enums.CalendarDeleteMode
 import app.planer.shared.calendar.requests.CreateCalendarRequest
 import app.planer.shared.calendar.requests.DeleteCalendarRequest
+import app.planer.shared.calendar.requests.ReorderCalendarRequest
 import app.planer.shared.calendar.requests.UpdateCalendarRequest
 import app.planer.shared.calendar.validation.createCalendarRequestValidation
 import app.planer.shared.calendar.validation.deleteCalendarRequestValidation
+import app.planer.shared.calendar.validation.reorderCalendarRequestValidation
 import app.planer.shared.calendar.validation.updateCalendarRequestValidation
 import java.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
@@ -84,6 +86,29 @@ class CalendarService(
         repository.setDefault(userId, calendarId, clock.instant())
     }
 
+    /** Moves the calendar to [ReorderCalendarRequest.newPosition]; the calendars in between shift by one. */
+    suspend fun reorder(userId: Uuid, calendarId: Uuid, request: ReorderCalendarRequest) {
+        reorderCalendarRequestValidation.validateOrThrow(request)
+
+        transactions.run {
+            get(userId, calendarId) // 404 if it is not the user's
+
+            val ids = repository.findOrderedIds(userId).toMutableList()
+            if (request.newPosition > ids.lastIndex) {
+                throw ValidationException(mapOf("newPosition" to listOf("must be between 0 and ${ids.lastIndex}")))
+            }
+
+            // Renumbering 0..n-1 also closes any gap left by deleted calendars.
+            ids.remove(calendarId)
+            ids.add(request.newPosition, calendarId)
+            val positions = ids.withIndex().associate { (position, id) -> id to position }
+
+            // Only the calendar that was moved is updated; the others merely shifted to make room.
+            repository.updatePositions(positions - calendarId)
+            repository.updatePosition(calendarId, positions.getValue(calendarId), clock.instant())
+        }
+    }
+
     suspend fun delete(userId: Uuid, request: DeleteCalendarRequest): DeletionResult {
         deleteCalendarRequestValidation.validateOrThrow(request)
 
@@ -124,7 +149,7 @@ class CalendarService(
 
     private suspend fun requireTarget(userId: Uuid, targetCalendarId: Uuid): Uuid {
         if (repository.findById(userId, targetCalendarId) == null) {
-            throw ValidationException(mapOf("targetCalendarId" to listOf("must be one of your calendars")))
+            throw NotFoundException("Target calendar not found.")
         }
         return targetCalendarId
     }

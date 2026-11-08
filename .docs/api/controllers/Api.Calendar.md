@@ -77,6 +77,10 @@ GET {{host}}/api/calendars/{id}
 }
 ```
 
+**Errors**
+
+- `404 NOT_FOUND` if the calendar is not owned by the user
+
 ---
 
 ## Create
@@ -153,6 +157,7 @@ only three, so a full replacement is simpler than a partial update.
 **Errors**
 
 - `400 VALIDATION_ERROR` if a field is missing or invalid
+- `404 NOT_FOUND` if the calendar is not owned by the user
 - `409 CONFLICT` if the new `name` collides with another calendar of this user
 
 ---
@@ -174,6 +179,10 @@ PUT {{host}}/api/calendars/{id}/default
 }
 ```
 
+**Errors**
+
+- `404 NOT_FOUND` if the calendar is not owned by the user
+
 ---
 
 ## Reorder
@@ -192,7 +201,12 @@ PUT {{host}}/api/calendars/{id}/position
 }
 ```
 
-The server shifts the positions of the calendars between the old and new positions.
+The server shifts the positions of the calendars between the old and new positions. Positions are renumbered
+`0..n-1`, so any gap left by a deleted calendar is closed.
+
+| Field         | Required | Notes                                                           |
+|---------------|----------|-----------------------------------------------------------------|
+| `newPosition` | yes      | `0` to the number of calendars minus one                        |
 
 **Response**
 
@@ -201,6 +215,11 @@ The server shifts the positions of the calendars between the old and new positio
   "message": "Position updated."
 }
 ```
+
+**Errors**
+
+- `400 VALIDATION_ERROR` if `newPosition` is negative or greater than the number of calendars minus one
+- `404 NOT_FOUND` if the calendar is not owned by the user
 
 ---
 
@@ -232,5 +251,7 @@ DELETE {{host}}/api/calendars/{id}
 
 **Errors**
 
-- `400 VALIDATION_ERROR` if `mode=reassign` and `targetCalendarId` is missing or invalid
+- `400 VALIDATION_ERROR` if `mode` is not one of the listed values, or if `mode=reassign` and `targetCalendarId` is missing,
+  invalid, or the id of the calendar being deleted
+- `404 NOT_FOUND` if the calendar, or the `targetCalendarId` of a reassign, is not owned by the user
 - `409 CONFLICT` if the user tries to delete the default calendar (set another one as default first)

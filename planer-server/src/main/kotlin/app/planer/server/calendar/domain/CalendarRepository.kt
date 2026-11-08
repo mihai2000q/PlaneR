@@ -31,6 +31,15 @@ interface CalendarRepository {
     /** Makes the calendar the user's only default, in one transaction. */
     suspend fun setDefault(userId: Uuid, calendarId: Uuid, updatedAt: Instant)
 
+    /** The ids of the user's calendars, ordered by `position`. */
+    suspend fun findOrderedIds(userId: Uuid): List<Uuid>
+
+    /** Stores the given position for each calendar, leaving `updatedAt` alone: for calendars that only shifted. */
+    suspend fun updatePositions(positions: Map<Uuid, Int>)
+
+    /** Stores the position and `updatedAt` of the calendar that was actually moved. */
+    suspend fun updatePosition(calendarId: Uuid, position: Int, updatedAt: Instant)
+
     /** Deletes the calendar. What happens to its events and tasks is decided by the caller. */
     suspend fun delete(calendarId: Uuid)
 }
