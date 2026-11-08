@@ -198,50 +198,39 @@ java -jar planer-server/build/libs/planer-server-all.jar
 
 ## Project Structure
 
-What exists today:
+The code is grouped by **feature** first and by layer second. Everything lives under
+`src/main/kotlin/app/planer/server/`:
 
-```
-planer-server/
-├── README.md
-├── build.gradle.kts
-└── src/
-    ├── main/
-    │   ├── kotlin/app/planer/server/
-    │   │   ├── Application.kt          # module(): the Ktor module, referenced from application.conf
-    │   │   ├── plugin/
-    │   │   │   ├── Serialization.kt    # ContentNegotiation (JSON)
-    │   │   │   └── Routing.kt
-    │   │   └── route/
-    │   │       └── HealthRoutes.kt     # GET /health
-    │   └── resources/
-    │       ├── application.conf        # Ktor configuration (port, module)
-    │       └── logback.xml
-    └── test/kotlin/app/planer/server/
-        └── route/HealthRoutesTest.kt
-```
+| Folder                  | What lives there                                                                                                       |
+|-------------------------|------------------------------------------------------------------------------------------------------------------------|
+| `Application.kt`        | `module()`, the Ktor module named in `application.conf`. It only calls the plugins below                               |
+| `common/plugins/`       | One file per Ktor plugin, each exposing a `configureX()` function (database, serialization, error handling, modules)   |
+| `common/errors/`        | The exceptions that map to the API error codes, and the translation of SQL errors                                      |
+| `auth/`                 | Who the caller is. A placeholder today (see below)                                                                     |
+| `<feature>/`            | One folder per feature (`calendar`, `health`, and the coming `event`, `task`, `user`). See below                       |
+| `src/main/resources/`   | `application.conf`, `logback.xml`, and the Flyway migrations in `db/migration/`                                        |
+| `src/test/`             | Unit tests, mirroring the main packages                                                                                |
+
+A feature folder holds a `<Feature>Module.kt`, which registers the feature's dependencies and mounts its routes (it is
+loaded from `common/plugins/Modules.kt`), and up to three layers:
+
+- `api/` — the routes, and the mapping from domain models to response DTOs
+- `domain/` — the model, the service with the business rules, and the repository **interface**
+- `data/` — the Exposed table and entity, and the repository **implementation**
+
+The dependency points inwards: `api` and `data` know the domain, and the domain knows neither. **Calendar** is the first
+feature built end to end, so copy its shape for a new one. A feature with no business logic, like `health`, needs only
+its module and its routes.
 
 The server's entry point is Ktor's `EngineMain` (the `application` plugin's main class); `application.conf` names the
 module to load.
 
-Planned, not yet created:
+Authentication is a **placeholder**: the caller is whoever the `X-User-Id` header says it is (`auth/`), until JWT
+authentication exists.
 
-```
-src/main/kotlin/app/planer/server/
-├── config/             # Config loading
-├── service/            # Business logic — TBD
-├── repository/         # Data access — TBD
-├── database/           # Exposed table definitions, connection setup
-└── security/           # JWT, password hashing
-src/main/resources/
-├── application-test.conf   # Configuration for integration tests
-└── db/migration/           # Flyway SQL migrations
-src/integrationTest/kotlin/app/planer/server/
-├── core/                   # Test Application, BaseIntegrationTest, AppHttpClient
-└── integration/            # Integration tests, grouped by collection
-```
-
-The exact package layout inside `service/`, `repository/`, and `database/` is not yet fixed and will be documented as
-the codebase takes shape.
+Planned, not yet created: `config/` (config loading), `security/` (JWT, password hashing), an
+`application-test.conf` for integration tests, and the `src/integrationTest/` source set (test application, base
+class, HTTP client helper, and tests grouped by collection).
 
 ## Architecture
 
