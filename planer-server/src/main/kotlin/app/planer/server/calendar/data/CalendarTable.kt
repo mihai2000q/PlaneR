@@ -5,7 +5,7 @@ import org.jetbrains.exposed.v1.core.dao.id.UuidTable
 import org.jetbrains.exposed.v1.javatime.timestamp
 
 object CalendarTable : UuidTable("calendars") {
-    val name = varchar("name", 255)
+    val name = varchar("name", 40)
     val color = varchar("color", 7)
     val icon = enumerationByName("icon", 20, CalendarIcon::class)
     val position = integer("position")

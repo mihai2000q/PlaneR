@@ -34,7 +34,7 @@ CREATE TABLE calendars
 (
     id         uuid         NOT NULL,
     user_id    uuid         NOT NULL,
-    name       varchar(255) NOT NULL,
+    name       varchar(40)  NOT NULL,
     color      varchar(7)   NOT NULL, -- #RRGGBB
     icon       varchar(20)  NOT NULL, -- CalendarIcon
     position   integer      NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE events
     user_id            uuid         NOT NULL,
     calendar_id        uuid,
     recurrence_rule_id uuid, -- NULL means "not recurring"
-    title              varchar(200) NOT NULL,
+    title              varchar(120) NOT NULL,
     description        text,
     location           varchar(255),
     starts_at          timestamptz  NOT NULL,
@@ -122,7 +122,7 @@ CREATE TABLE tasks
     user_id            uuid         NOT NULL,
     calendar_id        uuid,
     recurrence_rule_id uuid, -- NULL means "not recurring"
-    title              varchar(200) NOT NULL,
+    title              varchar(120) NOT NULL,
     description        text,
     due_at             timestamptz,
     scheduled_for      date,
@@ -167,7 +167,7 @@ CREATE TABLE recurrence_exceptions
     occurrence_date    date    NOT NULL,
     skipped            boolean NOT NULL DEFAULT false,
     -- Overrides. NULL means "not overridden".
-    title              varchar(200),
+    title              varchar(120),
     description        text,
     -- Event-only overrides
     location           varchar(255),
