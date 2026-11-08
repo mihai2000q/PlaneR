@@ -93,23 +93,19 @@ The module follows the standard KMP layout, with `commonMain` holding the bulk o
 sets only for `expect`/`actual` implementations. It has two targets: **JVM** (used by the server and the desktop client)
 and **Android** (used by the Android client). iOS is added later.
 
-What exists today:
+Code lives in `commonMain/kotlin/app/planer/shared/` and is grouped by **feature**, like the server:
 
-```
-planer-shared/
-├── README.md
-├── build.gradle.kts
-└── src/
-    ├── commonMain/kotlin/app/planer/shared/
-    │   ├── dto/HealthResponse.kt
-    │   └── validation/Validation.kt
-    └── commonTest/kotlin/app/planer/shared/
-        ├── dto/HealthResponseTest.kt
-        └── validation/ValidationTest.kt
-```
+| Folder                | What lives there                                                                                       |
+|-----------------------|--------------------------------------------------------------------------------------------------------|
+| `<feature>/`          | The contract of one feature (so far `calendar/`): its DTOs, its request bodies in `requests/`, and its enums in `enums/` |
+| `common/responses/`   | Response bodies that no single feature owns, such as the error body and the health response            |
+| `validation/`         | The validation rules that both the clients and the server apply                                        |
 
-Planned, not yet created: `domain/`, `network/`, and `auth/` under `commonMain`, plus platform source sets (`jvmMain`,
-`androidMain`, `iosMain`) *only if* an `expect`/`actual` is ever needed. None is needed yet, so none exists.
+Tests live in `commonTest/`, mirroring the same packages.
+
+Planned, not yet created: the rest of the feature folders, `network/` (the API client) and `auth/` under `commonMain`,
+plus platform source sets (`jvmMain`, `androidMain`, `iosMain`) *only if* an `expect`/`actual` is ever needed. None is
+needed yet, so none exists.
 
 The Android target uses the `com.android.kotlin.multiplatform.library` plugin (the Android Gradle Plugin 9 replacement
 for `com.android.library` in multiplatform modules), configured inside the `kotlin { android { … } }` block.
@@ -125,7 +121,8 @@ annotations and no serialization concerns.
 
 ### Dto
 
-> Today this contains only `HealthResponse`. The DTOs for the real endpoints come with each controller.
+> Today this contains `HealthResponse`, `ErrorResponse`, and the calendar create request and response. The other DTOs
+> come with each controller.
 
 Request and response bodies for the API described in [Api](../.docs/api/Api.md). Kept separate from the domain models
 even though they are similar today — the API includes fields the domain does not (e.g., `occurrenceDate` on expanded
@@ -135,8 +132,8 @@ DTOs are serialized with **kotlinx.serialization**.
 
 ### Validation
 
-> Today this contains two rules: a title of 1–120 characters and a `#RRGGBB` color. The rest come with the controllers
-> that need them.
+> Today this contains three rules: a title of 1–120 characters, a calendar name of 1–40 characters, and a `#RRGGBB`
+> color. The rest come with the controllers that need them.
 
 Rules like "title is 1–120 characters", "`endsAt` must be after `startsAt`", "color matches `^#[0-9A-Fa-f]{6}$`".
 
@@ -151,16 +148,7 @@ drift between the two. Validation rules are pure Kotlin and have no dependencies
 A thin HTTP client built on **Ktor Client** that both clients use to talk to the server. It wraps the endpoints defined
 in [Api](../.docs/api/Api.md) and returns typed responses.
 
-There is one file per controller, mirroring the docs:
-
-```
-network/endpoint/
-├── AuthEndpoints.kt
-├── UserEndpoints.kt
-├── CalendarEndpoints.kt
-├── EventEndpoints.kt
-└── TaskEndpoints.kt
-```
+There is one file per controller under `network/endpoint/`, mirroring the docs: auth, user, calendar, event and task.
 
 The `ApiClient` itself is responsible for:
 
