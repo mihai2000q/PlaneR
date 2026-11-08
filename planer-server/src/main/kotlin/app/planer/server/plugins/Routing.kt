@@ -1,4 +1,4 @@
-package app.planer.server.plugin
+package app.planer.server.plugins
 
 import app.planer.server.health.api.healthRoutes
 import io.ktor.server.application.Application

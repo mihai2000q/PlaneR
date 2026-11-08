@@ -1,4 +1,4 @@
-package app.planer.server.plugin
+package app.planer.server.plugins
 
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.Application
