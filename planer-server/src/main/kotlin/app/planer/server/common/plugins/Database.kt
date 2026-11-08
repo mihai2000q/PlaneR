@@ -1,4 +1,4 @@
-package app.planer.server.plugins
+package app.planer.server.common.plugins
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
